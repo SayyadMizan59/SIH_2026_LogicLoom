@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AetherID — Decentralized Identity & Asset Management</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Background Glow FX -->
+  <div class="bg-glow bg-glow-1"></div>
+  <div class="bg-glow bg-glow-2"></div>
+
+  <!-- Header -->
+  <header class="app-header">
+    <div class="header-container">
+      <div class="brand">
+        <div class="brand-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path>
+          </svg>
+        </div>
+        <div class="brand-text">
+          <h1>AetherID</h1>
+          <span class="brand-subtitle">Decentralized Identity & Asset Manager</span>
+        </div>
+      </div>
+
+      <div class="system-status">
+        <a href="/admin" class="nav-link-btn" style="background: rgba(99, 102, 241, 0.15); border-color: rgba(99, 102, 241, 0.4); color: #c7d2fe;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="7" height="7"></rect>
+            <rect x="14" y="3" width="7" height="7"></rect>
+            <rect x="14" y="14" width="7" height="7"></rect>
+            <rect x="3" y="14" width="7" height="7"></rect>
+          </svg>
+          Admin Dashboard
+        </a>
+        <a href="/roles" class="nav-link-btn" style="background: rgba(245, 158, 11, 0.12); border-color: rgba(245, 158, 11, 0.35); color: #fde68a;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+          </svg>
+          Roles & RBAC
+        </a>
+        <a href="/assets" class="nav-link-btn" style="background: rgba(6, 182, 212, 0.12); border-color: rgba(6, 182, 212, 0.35); color: #67e8f9;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+            <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+          </svg>
+          Digital Assets
+        </a>
+        <a href="/audit" class="nav-link-btn" style="background: rgba(16, 185, 129, 0.12); border-color: rgba(16, 185, 129, 0.35); color: #6ee7b7;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+            <line x1="16" y1="13" x2="8" y2="13"></line>
+            <line x1="16" y1="17" x2="8" y2="17"></line>
+            <polyline points="10 9 9 9 8 9"></polyline>
+          </svg>
+          Audit Trail
+        </a>
+        <a href="/demo" class="nav-link-btn" style="background: rgba(245, 158, 11, 0.18); border-color: rgba(245, 158, 11, 0.5); color: #fde68a; font-weight: 700;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+          </svg>
+          SIH Demo ⚡
+        </a>
+        <div class="status-pill" id="networkStatusPill">
+          <span class="pulse-dot"></span>
+          <span id="networkName">Connecting to Hardhat...</span>
+        </div>
+        <div class="status-pill" id="relayerPill">
+          <span class="pill-label">Relayer:</span>
+          <span id="relayerEth" class="mono">-- ETH</span>
+        </div>
+        <div class="status-pill contract-pill" id="contractPill" title="Smart Contract Address">
+          <span class="pill-label">Contract:</span>
+          <span id="contractAddressDisplay" class="mono">--</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="main-content">
+    <!-- Navigation Tabs -->
+    <nav class="nav-tabs">
+      <button class="tab-btn active" data-tab="registerTab" id="tabBtnRegister">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+          <circle cx="12" cy="7" r="4"></circle>
+        </svg>
+        1. Register Identity (DID)
+      </button>
+      <button class="tab-btn" data-tab="mintTab" id="tabBtnMint">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+        </svg>
+        2. Mint Credential NFT
+      </button>
+      <button class="tab-btn" data-tab="verifyTab" id="tabBtnVerify">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+          <polyline points="22 4 12 14.01 9 11.01"></polyline>
+        </svg>
+        3. Verify & Explore Credentials
+      </button>
+    </nav>
+
+    <!-- TAB 1: Register DID -->
+    <section class="tab-pane active" id="registerTab">
+      <div class="pane-grid">
+        <div class="card glass-card">
+          <div class="card-header">
+            <h2>Register Decentralized Identifier (DID)</h2>
+            <p>Generate a W3C-compliant decentralized identity on the blockchain mapped to the user's wallet address.</p>
+          </div>
+
+          <form id="registerForm">
+            <div class="form-group">
+              <label for="regAddress">Wallet Address (Target User)</label>
+              <div class="input-wrapper">
+                <input type="text" id="regAddress" placeholder="0x..." required />
+              </div>
+              <div class="quick-fills">
+                <span>Quick Fill:</span>
+                <button type="button" class="chip-btn" data-fill="0x70997970C51812dc3A010C7d01b50e0d17dc79C8">Account #1 (User)</button>
+                <button type="button" class="chip-btn" data-fill="0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC">Account #2</button>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="regCustomDid">Custom DID String (Optional)</label>
+              <div class="input-wrapper">
+                <input type="text" id="regCustomDid" placeholder="Leave empty for auto: did:ethr:0x..." />
+              </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary" id="btnSubmitRegister">
+              <span class="btn-text">Register Identity On-Chain</span>
+              <span class="spinner" style="display: none;"></span>
+            </button>
+          </form>
+
+          <div class="result-box" id="regResult" style="display: none;"></div>
+        </div>
+
+        <div class="card glass-card info-card">
+          <h3>How DID Registration Works</h3>
+          <div class="flow-steps">
+            <div class="step-item">
+              <span class="step-num">1</span>
+              <div>
+                <h4>Smart Contract RBAC</h4>
+                <p>Relayer wallet (authorized with <code>MANAGER_ROLE</code>) submits an on-chain registration transaction.</p>
+              </div>
+            </div>
+            <div class="step-item">
+              <span class="step-num">2</span>
+              <div>
+                <h4>Identity Mapping</h4>
+                <p>Stores the DID URI and registration timestamp permanently in contract state.</p>
+              </div>
+            </div>
+            <div class="step-item">
+              <span class="step-num">3</span>
+              <div>
+                <h4>Audit Trail</h4>
+                <p>Emits an <code>IdentityCreated</code> event for transparent tracking.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 2: Mint Credential NFT -->
+    <section class="tab-pane" id="mintTab">
+      <div class="pane-grid-2col">
+        <!-- Mint Form -->
+        <div class="card glass-card">
+          <div class="card-header">
+            <h2>Issue Digital Asset Credential (NFT)</h2>
+            <p>Mint an ERC-721 credential token to the recipient wallet with verified metadata.</p>
+          </div>
+
+          <form id="mintForm">
+            <div class="form-group">
+              <label for="mintRecipient">Recipient Wallet Address</label>
+              <div class="input-wrapper">
+                <input type="text" id="mintRecipient" placeholder="0x..." required />
+              </div>
+              <div class="quick-fills">
+                <span>Quick Fill:</span>
+                <button type="button" class="chip-btn" data-fill="0x70997970C51812dc3A010C7d01b50e0d17dc79C8">Account #1 (User)</button>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label for="mintAssetType">Credential Type</label>
+                <select id="mintAssetType">
+                  <option value="Driving License">Driving License</option>
+                  <option value="National Identity Card">National Identity Card</option>
+                  <option value="University Degree">University Degree</option>
+                  <option value="KYC Credential">KYC Level 2 Credential</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="mintFullName">Full Name</label>
+                <input type="text" id="mintFullName" value="Bob Martinez" required />
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label for="mintLicenseNumber">License / Credential ID</label>
+                <input type="text" id="mintLicenseNumber" value="DL-NY-2026-88192" required />
+              </div>
+              <div class="form-group">
+                <label for="mintCategory">Category / Class</label>
+                <input type="text" id="mintCategory" value="Class C / Passenger" required />
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label for="mintIssueDate">Issue Date</label>
+                <input type="date" id="mintIssueDate" value="2024-06-01" required />
+              </div>
+              <div class="form-group">
+                <label for="mintExpiryDate">Expiry Date</label>
+                <input type="date" id="mintExpiryDate" value="2034-06-01" required />
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="mintAuthority">Issuing Authority</label>
+              <input type="text" id="mintAuthority" value="Department of Motor Vehicles" required />
+            </div>
+
+            <button type="submit" class="btn btn-primary" id="btnSubmitMint">
+              <span class="btn-text">Mint Verifiable Credential NFT</span>
+              <span class="spinner" style="display: none;"></span>
+            </button>
+          </form>
+
+          <div class="result-box" id="mintResult" style="display: none;"></div>
+        </div>
+
+        <!-- Live Holographic Card Preview -->
+        <div class="card glass-card preview-pane">
+          <h3>Live Credential Card Preview</h3>
+          <p class="preview-sub">Interactive on-chain NFT visualization</p>
+
+          <div class="credential-card" id="credentialCardPreview">
+            <div class="card-chip"></div>
+            <div class="card-top">
+              <span class="card-badge" id="previewBadge">OFFICIAL CREDENTIAL</span>
+              <span class="card-type" id="previewAssetType">Driving License</span>
+            </div>
+
+            <div class="card-body">
+              <div class="card-avatar" id="previewAvatar">
+                <img id="avatarImg" src="https://api.dicebear.com/7.x/identicon/svg?seed=0x70997970C51812dc3A010C7d01b50e0d17dc79C8" alt="Avatar" />
+              </div>
+              <div class="card-details">
+                <div class="detail-name" id="previewFullName">Bob Martinez</div>
+                <div class="detail-id" id="previewLicenseNumber">ID: DL-NY-2026-88192</div>
+                <div class="detail-grid">
+                  <div>
+                    <span class="detail-label">CATEGORY</span>
+                    <span class="detail-val" id="previewCategory">Class C</span>
+                  </div>
+                  <div>
+                    <span class="detail-label">EXPIRES</span>
+                    <span class="detail-val" id="previewExpiry">2034-06-01</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="card-footer">
+              <div class="card-authority" id="previewAuthority">Dept of Motor Vehicles</div>
+              <div class="hologram-seal">ERC-721 VERIFIED</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 3: Verify & Explorer -->
+    <section class="tab-pane" id="verifyTab">
+      <div class="card glass-card">
+        <div class="card-header">
+          <h2>Verify Identity & Explore Digital Assets</h2>
+          <p>Lookup any Ethereum address to inspect their on-chain DID status and verify owned credential NFTs.</p>
+        </div>
+
+        <form id="verifyForm" class="search-bar-form">
+          <div class="search-input-group">
+            <input type="text" id="verifyAddressInput" placeholder="Enter wallet address (0x...)" required />
+            <button type="submit" class="btn btn-primary" id="btnSubmitVerify">
+              <span class="btn-text">Verify Credentials</span>
+              <span class="spinner" style="display: none;"></span>
+            </button>
+          </div>
+          <div class="quick-fills">
+            <span>Try Address:</span>
+            <button type="button" class="chip-btn" data-fill-verify="0x70997970C51812dc3A010C7d01b50e0d17dc79C8">Account #1 (User)</button>
+            <button type="button" class="chip-btn" data-fill-verify="0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC">Account #2</button>
+          </div>
+        </form>
+
+        <div id="verifyResultsContainer" style="display: none;">
+          <!-- Identity Summary Box -->
+          <div class="verification-summary" id="verificationSummaryBox">
+            <div class="summary-status-header">
+              <div class="status-indicator-badge" id="verificationBadge">
+                <span class="badge-icon">✔</span>
+                <span id="verificationText">Identity Verified</span>
+              </div>
+              <span class="asset-count-pill" id="assetCountPill">0 Digital Assets Owned</span>
+            </div>
+
+            <div class="summary-grid">
+              <div class="summary-field">
+                <span class="field-label">Wallet Address</span>
+                <span class="field-value mono" id="verifyResultAddress">--</span>
+              </div>
+              <div class="summary-field">
+                <span class="field-label">DID URI</span>
+                <span class="field-value mono" id="verifyResultDid">--</span>
+              </div>
+              <div class="summary-field">
+                <span class="field-label">Registered On-Chain</span>
+                <span class="field-value" id="verifyResultDate">--</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Owned Assets Grid -->
+          <div class="assets-section">
+            <h3>Owned Digital Asset Credentials</h3>
+            <div class="assets-grid" id="assetsGrid">
+              <!-- Asset cards injected here -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="app-footer">
+    <p>AetherID Decentralized Identity System — Solidity • Ethers.js v6 • Express.js • Hardhat</p>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>

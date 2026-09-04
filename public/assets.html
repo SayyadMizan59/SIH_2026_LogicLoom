@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AetherID — Digital Asset Management</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="admin.css">
+  <style>
+    /* Digital Assets Page Specific */
+    .asset-type-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .badge-Software-License {
+      background: rgba(139, 92, 246, 0.15);
+      color: #a78bfa;
+      border: 1px solid rgba(139, 92, 246, 0.3);
+    }
+    .badge-Driving-License {
+      background: rgba(6, 182, 212, 0.15);
+      color: #22d3ee;
+      border: 1px solid rgba(6, 182, 212, 0.3);
+    }
+    .badge-Educational-Certificate,
+    .badge-Academic-Degree {
+      background: rgba(16, 185, 129, 0.15);
+      color: #34d399;
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+    .badge-Digital-Certificate {
+      background: rgba(59, 130, 246, 0.15);
+      color: #60a5fa;
+      border: 1px solid rgba(59, 130, 246, 0.3);
+    }
+    .badge-Legal-Document {
+      background: rgba(245, 158, 11, 0.15);
+      color: #fbbf24;
+      border: 1px solid rgba(245, 158, 11, 0.3);
+    }
+    .badge-Intellectual-Property {
+      background: rgba(236, 72, 153, 0.15);
+      color: #f472b6;
+      border: 1px solid rgba(236, 72, 153, 0.3);
+    }
+    .badge-Company-Document {
+      background: rgba(148, 163, 184, 0.15);
+      color: #cbd5e1;
+      border: 1px solid rgba(148, 163, 184, 0.3);
+    }
+    .badge-Other {
+      background: rgba(255, 255, 255, 0.08);
+      color: #e2e8f0;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+    }
+
+    /* Transfer Flow Visualizer */
+    .transfer-flow-box {
+      background: rgba(255, 255, 255, 0.025);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 18px;
+      margin-bottom: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+    .flow-node {
+      width: 100%;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 10px 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .flow-arrow {
+      color: var(--primary);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+
+    /* Verification Checklist */
+    .verify-checklist {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .verify-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(255, 255, 255, 0.03);
+      padding: 10px 14px;
+      border-radius: 8px;
+      border: 1px solid var(--border-color);
+      font-size: 0.85rem;
+    }
+  </style>
+</head>
+<body>
+  <!-- Ambient background glow -->
+  <div class="bg-glow bg-glow-1"></div>
+  <div class="bg-glow bg-glow-2"></div>
+
+  <!-- Header -->
+  <header class="app-header">
+    <div class="header-container">
+      <div class="brand">
+        <div class="brand-icon" style="background: linear-gradient(135deg, #06b6d4, #3b82f6);">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="7" height="7"></rect>
+            <rect x="14" y="3" width="7" height="7"></rect>
+            <rect x="14" y="14" width="7" height="7"></rect>
+            <rect x="3" y="14" width="7" height="7"></rect>
+          </svg>
+        </div>
+        <div class="brand-text">
+          <h1>AetherID</h1>
+          <span class="brand-subtitle">Digital Asset Management (ERC-721)</span>
+        </div>
+      </div>
+
+      <div class="admin-status-bar">
+        <a href="/admin" class="nav-link-btn" title="Back to Admin Dashboard">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="7" height="7"></rect>
+            <rect x="14" y="3" width="7" height="7"></rect>
+            <rect x="14" y="14" width="7" height="7"></rect>
+            <rect x="3" y="14" width="7" height="7"></rect>
+          </svg>
+          Admin Dashboard
+        </a>
+
+        <a href="/roles" class="nav-link-btn" title="Roles & Permissions">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+          </svg>
+          Roles & RBAC
+        </a>
+
+        <a href="/audit" class="nav-link-btn" style="background: rgba(16, 185, 129, 0.12); border-color: rgba(16, 185, 129, 0.35); color: #6ee7b7;" title="Blockchain Audit Trail">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+            <line x1="16" y1="13" x2="8" y2="13"></line>
+            <line x1="16" y1="17" x2="8" y2="17"></line>
+            <polyline points="10 9 9 9 8 9"></polyline>
+          </svg>
+          Audit Trail
+        </a>
+
+        <a href="/demo" class="nav-link-btn" style="background: rgba(245, 158, 11, 0.18); border-color: rgba(245, 158, 11, 0.5); color: #fde68a; font-weight: 700;" title="SIH Access Control Demo">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+          </svg>
+          SIH Demo ⚡
+        </a>
+
+        <a href="/" class="nav-link-btn" title="User Portal">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+            <polyline points="9 22 9 12 15 12 15 22"></polyline>
+          </svg>
+          User Portal
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="main-content">
+    
+    <!-- Top Overview Header -->
+    <div class="admin-overview-header">
+      <div class="admin-title-area">
+        <h2>Digital Asset Management</h2>
+        <p>Complete on-chain registry of all NFT credentials, verified digital licenses, and ownership records.</p>
+      </div>
+
+      <div class="network-badge-group">
+        <div class="status-chip">
+          <span class="label">Network:</span>
+          <span class="val">Hardhat (31337)</span>
+        </div>
+        <div class="status-chip">
+          <span class="label">Contract:</span>
+          <span class="val mono" id="assetsContractAddr">0x...</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4 Summary Statistics Cards -->
+    <section class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); margin-bottom: 28px;">
+      <!-- Total Assets -->
+      <div class="stat-card stat-card-assets">
+        <div class="stat-card-header">
+          <span class="stat-label">Total Assets</span>
+          <div class="stat-icon-wrapper">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+              <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+            </svg>
+          </div>
+        </div>
+        <div class="stat-value-container">
+          <div class="stat-value" id="statTotalAssets">--</div>
+          <div class="stat-sub">Minted On-Chain</div>
+        </div>
+      </div>
+
+      <!-- Active Assets -->
+      <div class="stat-card stat-card-nfts">
+        <div class="stat-card-header">
+          <span class="stat-label">Active Assets</span>
+          <div class="stat-icon-wrapper">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <polyline points="12 6 12 12 14 14"></polyline>
+            </svg>
+          </div>
+        </div>
+        <div class="stat-value-container">
+          <div class="stat-value" id="statActiveAssets">--</div>
+          <div class="stat-sub">Valid State</div>
+        </div>
+      </div>
+
+      <!-- Transferred Assets -->
+      <div class="stat-card stat-card-txs">
+        <div class="stat-card-header">
+          <span class="stat-label">Transferred Assets</span>
+          <div class="stat-icon-wrapper">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="17 1 21 5 17 9"></polyline>
+              <path d="M3 11V9a4 4 0 0 1 4-4h14"></path>
+              <polyline points="7 23 3 19 7 15"></polyline>
+              <path d="M21 13v2a4 4 0 0 1-4 4H3"></path>
+            </svg>
+          </div>
+        </div>
+        <div class="stat-value-container">
+          <div class="stat-value" id="statTransferredAssets">--</div>
+          <div class="stat-sub">Ownership Updated</div>
+        </div>
+      </div>
+
+      <!-- Verified Assets -->
+      <div class="stat-card stat-card-roles">
+        <div class="stat-card-header">
+          <span class="stat-label">Verified Assets</span>
+          <div class="stat-icon-wrapper">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+              <polyline points="22 4 12 14.01 9 11.01"></polyline>
+            </svg>
+          </div>
+        </div>
+        <div class="stat-value-container">
+          <div class="stat-value" id="statVerifiedAssets">--</div>
+          <div class="stat-sub">100% Cryptographic</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Action Toolbar -->
+    <section class="quick-actions-bar">
+      <div class="action-buttons-group">
+        <button class="btn-action btn-action-primary" id="btnOpenMintModal">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+          </svg>
+          Mint Asset
+        </button>
+
+        <button class="btn-action" id="btnOpenAssignModal">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+            <circle cx="8.5" cy="7" r="4"></circle>
+            <polyline points="17 11 19 13 23 9"></polyline>
+          </svg>
+          Assign Asset
+        </button>
+      </div>
+
+      <div class="activity-controls">
+        <select id="assetTypeFilterSelect" style="padding: 8px 12px; background: rgba(255, 255, 255, 0.04); border: 1px solid var(--border-color); border-radius: 8px; color: var(--text-main); font-size: 0.82rem; outline: none;">
+          <option value="ALL">All Asset Types</option>
+          <option value="Software License">Software License</option>
+          <option value="Driving License">Driving License</option>
+          <option value="Educational Certificate">Educational Certificate</option>
+          <option value="Digital Certificate">Digital Certificate</option>
+          <option value="Legal Document">Legal Document</option>
+          <option value="Intellectual Property">Intellectual Property</option>
+          <option value="Company Document">Company Document</option>
+          <option value="Other">Other</option>
+        </select>
+
+        <div class="search-input-wrapper" style="min-width: 220px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <input type="text" id="assetSearchInput" placeholder="Search ID, name, owner, DID..." />
+        </div>
+
+        <button class="btn-refresh" id="btnRefreshAssets">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" id="assetsRefreshIcon">
+            <polyline points="23 4 23 10 17 10"></polyline>
+            <polyline points="1 20 1 14 7 14"></polyline>
+            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+          </svg>
+          Sync
+        </button>
+      </div>
+    </section>
+
+    <!-- Digital Asset Table Section -->
+    <section class="activity-section">
+      <div class="table-container">
+        <table class="roles-table">
+          <thead>
+            <tr>
+              <th style="width: 80px;">NFT ID</th>
+              <th>Asset Type</th>
+              <th>Asset Name</th>
+              <th>Owner</th>
+              <th>Owner DID</th>
+              <th>Status</th>
+              <th>Created Date</th>
+              <th style="text-align: right;">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="assetsTableBody">
+            <tr>
+              <td colspan="8" style="text-align: center; padding: 40px; color: var(--text-muted);">
+                <div class="spinner" style="margin: 0 auto 12px;"></div>
+                Loading on-chain digital assets...
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ========================================== -->
+  <!-- MODAL 1: Transfer Asset -->
+  <!-- ========================================== -->
+  <div class="modal-backdrop" id="modalTransferAsset">
+    <div class="modal-dialog" style="max-width: 540px;">
+      <div class="modal-header">
+        <h3>Transfer Digital Asset (NFT)</h3>
+        <button class="modal-close-btn" data-close-modal="modalTransferAsset">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <form id="formTransferAsset">
+          <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: 10px; padding: 14px; margin-bottom: 18px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+              <span style="font-weight: 700; font-size: 1rem; color: #fff;" id="transferAssetName">--</span>
+              <span class="act-block-badge" id="transferTokenBadge">Token #--</span>
+            </div>
+            <div style="font-size: 0.8rem; color: var(--text-muted);" id="transferAssetType">Asset Type: --</div>
+          </div>
+
+          <!-- Transfer Flow Visualization -->
+          <div class="transfer-flow-box">
+            <div class="flow-node">
+              <span style="font-size: 0.78rem; color: var(--text-muted);">Current Owner</span>
+              <span style="font-family: var(--font-mono); font-size: 0.82rem; color: #fff;" id="transferCurrentOwnerVal">0x...</span>
+            </div>
+            <div class="flow-arrow">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <polyline points="19 12 12 19 5 12"></polyline>
+              </svg>
+              <span>Transfer Ownership On-Chain</span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <polyline points="19 12 12 19 5 12"></polyline>
+              </svg>
+            </div>
+            <div class="flow-node" style="border-color: rgba(99, 102, 241, 0.4); background: rgba(99, 102, 241, 0.08);">
+              <span style="font-size: 0.78rem; color: #c7d2fe;">New Owner</span>
+              <span style="font-family: var(--font-mono); font-size: 0.82rem; color: #fff;" id="transferTargetPreview">Select below...</span>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="transferRecipientInput">Recipient Wallet Address (New Owner)</label>
+            <input type="text" id="transferRecipientInput" placeholder="0x..." required />
+            <div class="quick-fills" style="margin-top: 8px;">
+              <span>Quick:</span>
+              <button type="button" class="chip-btn" data-fill-transfer="0x70997970C51812dc3A010C7d01b50e0d17dc79C8">Rahul</button>
+              <button type="button" class="chip-btn" data-fill-transfer="0xc8Cd9300c0174353255140EEB9E3864a7541D99c">Mizan</button>
+              <button type="button" class="chip-btn" data-fill-transfer="0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC">Alice</button>
+              <button type="button" class="chip-btn" data-fill-transfer="0x90F79bf6EB2c4f870365E785982E1f101E93b906">Priya</button>
+            </div>
+          </div>
+
+          <!-- Confirmation Box -->
+          <div style="background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.25); border-radius: 8px; padding: 12px; margin-bottom: 20px;">
+            <label style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer; font-size: 0.82rem; color: #fde68a;">
+              <input type="checkbox" id="confirmTransferCheck" required style="margin-top: 3px;" />
+              <span><strong>Confirmation Required:</strong> I authorize executing this on-chain ownership transfer for Token <span id="transferConfirmTid">#--</span>.</span>
+            </label>
+          </div>
+
+          <div style="display: flex; gap: 10px; justify-content: flex-end;">
+            <button type="button" class="btn" data-close-modal="modalTransferAsset">Cancel</button>
+            <button type="submit" class="btn btn-primary" id="btnSubmitTransfer">
+              <span class="btn-text">Execute Transfer On-Chain</span>
+              <span class="spinner" style="display: none;"></span>
+            </button>
+          </div>
+        </form>
+
+        <!-- Post-Transfer Receipt -->
+        <div id="transferReceiptBox" style="display: none; margin-top: 20px; background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.35); border-radius: 12px; padding: 16px;">
+          <div style="display: flex; align-items: center; gap: 8px; color: var(--success); font-weight: 700; font-size: 1.05rem; margin-bottom: 12px;">
+            <span class="status-dot-sm" style="width: 8px; height: 8px;"></span>
+            Transfer Successful
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 6px; font-size: 0.82rem; font-family: var(--font-mono);">
+            <div><span style="color: var(--text-muted);">Token ID:</span> <span id="recTokenId" style="color: #fff;">#--</span></div>
+            <div><span style="color: var(--text-muted);">Previous Owner:</span> <span id="recPrevOwner" style="color: #cbd5e1;">0x...</span></div>
+            <div><span style="color: var(--text-muted);">New Owner:</span> <span id="recNewOwner" style="color: var(--secondary);">0x...</span></div>
+            <div><span style="color: var(--text-muted);">Tx Hash:</span> <span id="recTxHash" style="color: #cbd5e1; cursor: pointer;">0x...</span></div>
+            <div><span style="color: var(--text-muted);">Block Number:</span> <span id="recBlock" style="color: #fff;">--</span></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- MODAL 2: View Details (Asset Inspector) -->
+  <!-- ========================================== -->
+  <div class="modal-backdrop" id="modalAssetDetails">
+    <div class="modal-dialog" style="max-width: 680px;">
+      <div class="modal-header">
+        <h3>Asset Credential Inspector</h3>
+        <button class="modal-close-btn" data-close-modal="modalAssetDetails">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; border-bottom: 1px solid var(--border-color); padding-bottom: 16px;">
+          <div>
+            <span class="act-block-badge" id="detailTokenIdBadge" style="margin-bottom: 4px;">Token #--</span>
+            <h3 style="font-size: 1.3rem; color: #fff; margin-top: 4px;" id="detailAssetName">--</h3>
+            <span id="detailAssetTypeBadge" class="asset-type-badge badge-Other">--</span>
+          </div>
+          <span class="status-badge-success">
+            <span class="status-dot-sm"></span>
+            <span id="detailStatusText">Active</span>
+          </span>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 20px; font-size: 0.85rem;">
+          <div>
+            <div style="color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase;">Owner Wallet</div>
+            <div class="mono" id="detailOwnerWallet" style="color: #fff; margin-top: 2px;">0x...</div>
+          </div>
+          <div>
+            <div style="color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase;">Owner DID</div>
+            <div class="mono" id="detailOwnerDid" style="color: var(--secondary); margin-top: 2px;">did:ethr:0x...</div>
+          </div>
+          <div>
+            <div style="color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase;">Issuing Authority</div>
+            <div id="detailAuthority" style="color: #fff; margin-top: 2px;">--</div>
+          </div>
+          <div>
+            <div style="color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase;">Creation Timestamp</div>
+            <div id="detailCreatedDate" style="color: #fff; margin-top: 2px;">--</div>
+          </div>
+          <div>
+            <div style="color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase;">Transaction Hash</div>
+            <div class="mono" id="detailTxHash" style="color: #cbd5e1; margin-top: 2px; cursor: pointer;">0x...</div>
+          </div>
+          <div>
+            <div style="color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase;">Block Number</div>
+            <div id="detailBlockNumber" class="mono" style="color: #fff; margin-top: 2px;">Block #--</div>
+          </div>
+        </div>
+
+        <!-- Metadata Attributes List -->
+        <h4 style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 8px;">Credential Attributes & Traits</h4>
+        <div id="detailAttributesGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 8px; margin-bottom: 20px;">
+          <!-- Populated via JS -->
+        </div>
+
+        <!-- Raw Metadata JSON Inspector -->
+        <details style="background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); border-radius: 8px; padding: 10px;">
+          <summary style="cursor: pointer; color: var(--text-muted); font-size: 0.8rem; font-weight: 600;">View Raw Decoded Metadata (JSON)</summary>
+          <pre id="detailRawJson" style="font-family: var(--font-mono); font-size: 0.75rem; color: #cbd5e1; white-space: pre-wrap; word-break: break-all; margin-top: 8px; max-height: 200px; overflow-y: auto;"></pre>
+        </details>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- MODAL 3: Verify Asset (Cryptographic Verifier) -->
+  <!-- ========================================== -->
+  <div class="modal-backdrop" id="modalVerifyAsset">
+    <div class="modal-dialog" style="max-width: 560px;">
+      <div class="modal-header">
+        <h3>Cryptographic Asset Verification</h3>
+        <button class="modal-close-btn" data-close-modal="modalVerifyAsset">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div style="text-align: center; margin-bottom: 24px;">
+          <div style="width: 52px; height: 52px; border-radius: 50%; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.4); display: flex; align-items: center; justify-content: center; margin: 0 auto 12px; color: var(--success);">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+          </div>
+          <h4 style="font-size: 1.15rem; color: #fff;">On-Chain Authenticity Confirmed</h4>
+          <p style="font-size: 0.82rem; color: var(--text-muted); margin-top: 4px;" id="verifyTokenSubtitle">Token #-- verified directly against smart contract.</p>
+        </div>
+
+        <div class="verify-checklist">
+          <div class="verify-item">
+            <span>On-Chain Token State</span>
+            <span style="color: var(--success); font-weight: 600;">Valid (ERC-721) ✓</span>
+          </div>
+          <div class="verify-item">
+            <span>Decentralized Identity (DID)</span>
+            <span style="color: var(--success); font-weight: 600;" id="verifyDidStatus">Registered On-Chain ✓</span>
+          </div>
+          <div class="verify-item">
+            <span>Metadata Integrity</span>
+            <span style="color: var(--success); font-weight: 600;">Base64 Authentic ✓</span>
+          </div>
+          <div class="verify-item">
+            <span>Contract Authority</span>
+            <span style="color: var(--success); font-weight: 600;">Authorized Issuer ✓</span>
+          </div>
+        </div>
+
+        <div style="margin-top: 20px; display: flex; justify-content: flex-end;">
+          <button class="btn btn-primary" data-close-modal="modalVerifyAsset">Done</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- MODAL 4: Mint / Assign Asset -->
+  <!-- ========================================== -->
+  <div class="modal-backdrop" id="modalMintAsset">
+    <div class="modal-dialog" style="max-width: 620px;">
+      <div class="modal-header">
+        <h3 id="mintModalTitle">Mint Digital Asset Credential</h3>
+        <button class="modal-close-btn" data-close-modal="modalMintAsset">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <form id="formMintDigitalAsset">
+          <div class="form-group">
+            <label for="inputMintRecipient">Recipient Wallet Address</label>
+            <input type="text" id="inputMintRecipient" placeholder="0x..." required />
+            <div class="quick-fills" style="margin-top: 8px;">
+              <span>Quick:</span>
+              <button type="button" class="chip-btn" data-fill-mrec="0xc8Cd9300c0174353255140EEB9E3864a7541D99c">Mizan</button>
+              <button type="button" class="chip-btn" data-fill-mrec="0x70997970C51812dc3A010C7d01b50e0d17dc79C8">Rahul</button>
+              <button type="button" class="chip-btn" data-fill-mrec="0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC">Alice</button>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="inputMintAssetType">Supported Asset Type</label>
+              <select id="inputMintAssetType" required>
+                <option value="Software License">Software License</option>
+                <option value="Digital Certificate">Digital Certificate</option>
+                <option value="Educational Certificate">Educational Certificate</option>
+                <option value="Driving License">Driving License</option>
+                <option value="Legal Document">Legal Document</option>
+                <option value="Intellectual Property">Intellectual Property</option>
+                <option value="Company Document">Company Document</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="inputMintAssetName">Asset / Credential Name</label>
+              <input type="text" id="inputMintAssetName" placeholder="e.g. Enterprise License" required />
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="inputMintFullName">Holder Full Name</label>
+              <input type="text" id="inputMintFullName" placeholder="e.g. Mizan Rahman" required />
+            </div>
+
+            <div class="form-group">
+              <label for="inputMintAuthority">Issuing Authority / Organization</label>
+              <input type="text" id="inputMintAuthority" placeholder="e.g. AetherID Foundation" required />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="inputMintIdNumber">Credential ID / Reference Number</label>
+            <input type="text" id="inputMintIdNumber" placeholder="e.g. LIC-2026-99104" required />
+          </div>
+
+          <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 24px;">
+            <button type="button" class="btn" data-close-modal="modalMintAsset">Cancel</button>
+            <button type="submit" class="btn btn-primary" id="btnSubmitMintAsset">
+              <span class="btn-text">Mint Asset On-Chain</span>
+              <span class="spinner" style="display: none;"></span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- JavaScript -->
+  <script src="assets.js"></script>
+</body>
+</html>
