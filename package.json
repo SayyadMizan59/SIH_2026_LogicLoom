@@ -23,10 +23,12 @@
   "license": "MIT",
   "dependencies": {
     "@openzeppelin/contracts": "^5.0.2",
+    "bcryptjs": "^3.0.3",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "ethers": "^6.13.2",
-    "express": "^4.19.2"
+    "express": "^4.19.2",
+    "express-session": "^1.19.0"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "^5.0.0",

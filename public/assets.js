@@ -66,6 +66,8 @@ document.addEventListener("DOMContentLoaded", () => {
   // Global State
   let allAssets = [];
   let currentSelectedAsset = null;
+  let registeredUsers = [];
+  let currentAuthUser = null;
 
   // Toast Helper
   function showToast(message, type = "success") {
@@ -120,15 +122,35 @@ document.addEventListener("DOMContentLoaded", () => {
   // ==========================================
   async function loadAssetsData() {
     try {
-      const [resStats, resAll, resAdminStats] = await Promise.all([
+      const [resStats, resAll, resAdminStats, resUsers, resAuth] = await Promise.all([
         fetch("/api/assets/stats"),
         fetch("/api/assets/all"),
         fetch("/api/admin/stats"),
+        fetch("/api/roles/users").catch(() => null),
+        fetch("/api/auth/me").catch(() => null),
       ]);
 
       const statsData = await resStats.json();
       const allData = await resAll.json();
       const adminStats = await resAdminStats.json();
+
+      if (resUsers && resUsers.ok) {
+        try {
+          const usersData = await resUsers.json();
+          if (usersData && usersData.success && usersData.users) {
+            registeredUsers = usersData.users;
+          }
+        } catch {}
+      }
+
+      if (resAuth && resAuth.ok) {
+        try {
+          const authData = await resAuth.json();
+          if (authData && authData.authenticated && authData.user) {
+            currentAuthUser = authData.user;
+          }
+        } catch {}
+      }
 
       if (adminStats.success && adminStats.contract) {
         assetsContractAddr.textContent = `${adminStats.contract.address.slice(0, 6)}...${adminStats.contract.address.slice(-4)}`;
@@ -223,7 +245,10 @@ document.addEventListener("DOMContentLoaded", () => {
               <div style="font-size: 0.75rem; color: var(--text-muted);">${a.issuingAuthority || "Verified Issuer"}</div>
             </td>
             <td>
-              <div style="font-weight: 600; color: #cbd5e1;">${a.ownerName}</div>
+              <div style="font-weight: 600; color: #cbd5e1; display: flex; align-items: center; gap: 6px;">
+                <span>${a.ownerName}</span>
+                ${a.isLegacyDemo ? `<span style="font-size: 0.65rem; background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); padding: 1px 5px; border-radius: 4px;">Seed Data</span>` : ""}
+              </div>
               <div class="mono" style="font-size: 0.75rem; color: var(--text-muted); cursor: pointer;" title="Click to copy" onclick="window.copyText('${a.owner}', 'Owner Wallet')">
                 ${shortAddr}
               </div>
@@ -306,12 +331,55 @@ document.addEventListener("DOMContentLoaded", () => {
     transferReceiptBox.style.display = "none";
     formTransferAsset.style.display = "block";
 
+    // Dynamically render recipient quick-fills for registered users excluding current owner
+    const quickFillsContainer = document.querySelector("#modalTransferAsset .quick-fills");
+    if (quickFillsContainer && registeredUsers.length > 0) {
+      const candidates = registeredUsers.filter(
+        (u) => u.address && u.address.toLowerCase() !== asset.owner.toLowerCase()
+      );
+      if (candidates.length > 0) {
+        quickFillsContainer.innerHTML =
+          `<span>Quick:</span>` +
+          candidates
+            .map(
+              (u) =>
+                `<button type="button" class="chip-btn" data-fill-transfer="${u.address}" title="${u.address}">${u.user}</button>`
+            )
+            .join(" ");
+
+        quickFillsContainer.querySelectorAll("[data-fill-transfer]").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            transferRecipientInput.value = btn.getAttribute("data-fill-transfer");
+            transferRecipientInput.dispatchEvent(new Event("input"));
+          });
+        });
+      }
+    }
+
     openModal(modalTransferAsset);
   };
 
   transferRecipientInput.addEventListener("input", () => {
     const val = transferRecipientInput.value.trim();
-    transferTargetPreview.textContent = val ? `${val.slice(0, 8)}...${val.slice(-6)}` : "Select below...";
+    if (!val) {
+      transferTargetPreview.textContent = "Select below...";
+      return;
+    }
+    const matchedUser = registeredUsers.find(
+      (u) => u.user && u.user.toLowerCase() === val.toLowerCase()
+    );
+    if (matchedUser) {
+      transferTargetPreview.textContent = `${matchedUser.user} (${matchedUser.address.slice(0, 6)}...${matchedUser.address.slice(-4)})`;
+      return;
+    }
+    const matchedByAddr = registeredUsers.find(
+      (u) => u.address && u.address.toLowerCase() === val.toLowerCase()
+    );
+    if (matchedByAddr) {
+      transferTargetPreview.textContent = `${matchedByAddr.user} (${val.slice(0, 6)}...${val.slice(-4)})`;
+      return;
+    }
+    transferTargetPreview.textContent = val.length > 14 ? `${val.slice(0, 8)}...${val.slice(-6)}` : val;
   });
 
   document.querySelectorAll("[data-fill-transfer]").forEach((btn) => {
@@ -341,6 +409,7 @@ document.addEventListener("DOMContentLoaded", () => {
         body: JSON.stringify({
           tokenId: currentSelectedAsset.tokenId,
           toAddress: toAddress,
+          callerAddress: currentAuthUser ? currentAuthUser.walletAddress : undefined,
         }),
       });
 
@@ -398,7 +467,7 @@ document.addEventListener("DOMContentLoaded", () => {
     detailOwnerDid.textContent = asset.ownerDid;
     detailOwnerDid.onclick = () => window.copyText(asset.ownerDid, "Owner DID");
 
-    detailAuthority.textContent = asset.issuingAuthority || "AetherID Authority";
+    detailAuthority.textContent = asset.issuingAuthority || "Credexa Authority";
     detailCreatedDate.textContent = new Date(asset.createdDate).toLocaleString();
 
     detailTxHash.textContent = `${asset.transactionHash.slice(0, 14)}...`;

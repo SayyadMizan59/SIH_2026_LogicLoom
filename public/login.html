@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Credexa — Sign In</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <style>
+    /* Login Page Specific Enhancements */
+    body {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      margin: 0;
+      padding: 24px 16px;
+      background-color: var(--bg-dark);
+      overflow-x: hidden;
+    }
+
+    .login-container {
+      width: 100%;
+      max-width: 460px;
+      z-index: 10;
+      margin: auto;
+    }
+
+    /* Logo & Branding Area */
+    .login-branding {
+      text-align: center;
+      margin-bottom: 28px;
+    }
+
+    .login-logo-icon {
+      width: 58px;
+      height: 58px;
+      border-radius: 16px;
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      box-shadow: 0 8px 30px var(--primary-glow);
+      margin-bottom: 16px;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .login-logo-icon:hover {
+      transform: translateY(-2px) scale(1.03);
+      box-shadow: 0 12px 36px rgba(99, 102, 241, 0.55);
+    }
+
+    .login-brand-title {
+      font-size: 2rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      background: linear-gradient(135deg, #ffffff 30%, #a5b4fc 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin: 0 0 6px 0;
+      line-height: 1.1;
+    }
+
+    .login-brand-sub {
+      font-size: 0.92rem;
+      color: var(--text-muted);
+      font-weight: 400;
+      letter-spacing: 0.01em;
+      margin: 0;
+    }
+
+    /* Main Auth Card */
+    .login-card {
+      background: rgba(18, 24, 38, 0.78);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: var(--radius-lg);
+      padding: 34px 30px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(99, 102, 241, 0.15);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .login-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, var(--primary), var(--secondary), var(--accent));
+    }
+
+    .login-welcome {
+      text-align: center;
+      margin-bottom: 26px;
+    }
+
+    .login-welcome h2 {
+      font-size: 1.45rem;
+      font-weight: 700;
+      color: var(--text-main);
+      margin: 0 0 6px 0;
+    }
+
+    .login-welcome p {
+      font-size: 0.88rem;
+      color: var(--text-muted);
+      margin: 0;
+    }
+
+    /* Form Elements */
+    .form-group {
+      margin-bottom: 20px;
+      text-align: left;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 0.84rem;
+      font-weight: 600;
+      color: #cbd5e1;
+      margin-bottom: 8px;
+      letter-spacing: 0.01em;
+    }
+
+    .input-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .input-icon {
+      position: absolute;
+      left: 14px;
+      color: #64748b;
+      display: flex;
+      align-items: center;
+      pointer-events: none;
+    }
+
+    .form-input {
+      width: 100%;
+      background: rgba(10, 14, 25, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: var(--radius-md);
+      padding: 13px 14px 13px 44px;
+      color: var(--text-main);
+      font-size: 0.92rem;
+      font-family: var(--font-main);
+      transition: all 0.2s ease;
+      outline: none;
+    }
+
+    .form-input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25);
+      background: rgba(10, 14, 25, 0.95);
+    }
+
+    .form-input::placeholder {
+      color: #64748b;
+    }
+
+    .password-toggle-btn {
+      position: absolute;
+      right: 12px;
+      background: none;
+      border: none;
+      color: #64748b;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      padding: 4px;
+      border-radius: 4px;
+      transition: color 0.2s;
+    }
+
+    .password-toggle-btn:hover {
+      color: #cbd5e1;
+    }
+
+    /* Role Dropdown */
+    .role-select {
+      width: 100%;
+      background: rgba(10, 14, 25, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: var(--radius-md);
+      padding: 13px 40px 13px 44px;
+      color: var(--text-main);
+      font-size: 0.9rem;
+      font-family: var(--font-main);
+      cursor: pointer;
+      appearance: none;
+      -webkit-appearance: none;
+      outline: none;
+      transition: all 0.2s ease;
+    }
+
+    .role-select:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25);
+      background: rgba(10, 14, 25, 0.95);
+    }
+
+    .select-arrow {
+      position: absolute;
+      right: 14px;
+      color: #64748b;
+      pointer-events: none;
+      display: flex;
+      align-items: center;
+    }
+
+    .role-select option {
+      background: #111625;
+      color: #f8fafc;
+      padding: 10px;
+    }
+
+    /* Submit Button */
+    .btn-signin {
+      width: 100%;
+      padding: 14px;
+      margin-top: 10px;
+      background: linear-gradient(135deg, var(--primary) 0%, #4338ca 100%);
+      color: #ffffff;
+      border: none;
+      border-radius: var(--radius-md);
+      font-size: 0.95rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      cursor: pointer;
+      box-shadow: 0 6px 20px rgba(99, 102, 241, 0.35);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      transition: all 0.25s ease;
+      font-family: var(--font-main);
+    }
+
+    .btn-signin:hover:not(:disabled) {
+      background: linear-gradient(135deg, #4f46e5 0%, #3730a3 100%);
+      box-shadow: 0 8px 25px rgba(99, 102, 241, 0.5);
+      transform: translateY(-1px);
+    }
+
+    .btn-signin:disabled {
+      opacity: 0.65;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    /* Alert Banner */
+    .alert-banner {
+      display: none;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 14px;
+      border-radius: var(--radius-md);
+      font-size: 0.86rem;
+      font-weight: 500;
+      margin-bottom: 20px;
+      animation: fadeIn 0.2s ease-in-out;
+    }
+
+    .alert-error {
+      background: rgba(239, 68, 68, 0.12);
+      border: 1px solid rgba(239, 68, 68, 0.35);
+      color: #fca5a5;
+    }
+
+    .alert-success {
+      background: rgba(16, 185, 129, 0.12);
+      border: 1px solid rgba(16, 185, 129, 0.35);
+      color: #6ee7b7;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Demo Accounts Section */
+    .demo-credentials-card {
+      margin-top: 24px;
+      background: rgba(15, 20, 32, 0.6);
+      border: 1px dashed rgba(255, 255, 255, 0.12);
+      border-radius: var(--radius-md);
+      padding: 16px 18px;
+    }
+
+    .demo-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+
+    .demo-title {
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .demo-badge {
+      font-size: 0.68rem;
+      padding: 2px 7px;
+      border-radius: 4px;
+      background: rgba(245, 158, 11, 0.15);
+      color: #fbbf24;
+      border: 1px solid rgba(245, 158, 11, 0.3);
+      font-weight: 600;
+    }
+
+    .demo-accounts-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .demo-account-item {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 8px;
+      padding: 10px 12px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-align: left;
+    }
+
+    .demo-account-item:hover {
+      background: rgba(99, 102, 241, 0.1);
+      border-color: rgba(99, 102, 241, 0.3);
+      transform: translateY(-1px);
+    }
+
+    .demo-role-tag {
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: #818cf8;
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .demo-cred-line {
+      font-size: 0.78rem;
+      font-family: var(--font-mono);
+      color: #cbd5e1;
+      line-height: 1.4;
+    }
+
+    .demo-cred-label {
+      color: #64748b;
+    }
+
+    .demo-click-hint {
+      font-size: 0.68rem;
+      color: #6366f1;
+      margin-top: 4px;
+      font-weight: 500;
+    }
+
+    /* Footer Note */
+    .login-footer-note {
+      text-align: center;
+      margin-top: 20px;
+      font-size: 0.78rem;
+      color: #64748b;
+    }
+
+    .spinner {
+      width: 18px;
+      height: 18px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-top-color: #ffffff;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <!-- Ambient background glow FX -->
+  <div class="bg-glow bg-glow-1"></div>
+  <div class="bg-glow bg-glow-2"></div>
+
+  <div class="login-container">
+    <!-- Branding Header -->
+    <div class="login-branding">
+      <div class="login-logo-icon">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path>
+        </svg>
+      </div>
+      <h1 class="login-brand-title">Credexa</h1>
+      <p class="login-brand-sub">Blockchain-Powered Digital Identity & Asset Management</p>
+    </div>
+
+    <!-- Login Card -->
+    <div class="login-card">
+      <div class="login-welcome">
+        <h2>Welcome Back</h2>
+        <p>Sign in to access your dashboard</p>
+      </div>
+
+      <!-- Alert Banner for Errors or Notices -->
+      <div id="loginAlert" class="alert-banner" role="alert">
+        <svg id="alertIcon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="8" x2="12" y2="12"></line>
+          <line x1="12" y1="16" x2="12.01" y2="16"></line>
+        </svg>
+        <span id="alertMessage"></span>
+      </div>
+
+      <!-- Sign In Form -->
+      <form id="loginForm" autocomplete="on">
+        <!-- Username or Email -->
+        <div class="form-group">
+          <label for="loginUsername">Username / Email</label>
+          <div class="input-wrapper">
+            <span class="input-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                <circle cx="12" cy="7" r="4"></circle>
+              </svg>
+            </span>
+            <input
+              type="text"
+              id="loginUsername"
+              class="form-input"
+              placeholder="Enter your username or email"
+              autocomplete="username"
+              required
+            />
+          </div>
+        </div>
+
+        <!-- Password -->
+        <div class="form-group">
+          <label for="loginPassword">Password</label>
+          <div class="input-wrapper">
+            <span class="input-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+              </svg>
+            </span>
+            <input
+              type="password"
+              id="loginPassword"
+              class="form-input"
+              placeholder="Enter your password"
+              autocomplete="current-password"
+              required
+            />
+            <button type="button" class="password-toggle-btn" id="togglePasswordBtn" title="Toggle password visibility">
+              <svg id="eyeIcon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                <circle cx="12" cy="12" r="3"></circle>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Role Dropdown -->
+        <div class="form-group">
+          <label for="loginRole">Select Your Role</label>
+          <div class="input-wrapper">
+            <span class="input-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+              </svg>
+            </span>
+            <select id="loginRole" class="role-select" required>
+              <option value="User">User - Manage identity and assets</option>
+              <option value="Admin">Admin - Manage system, users, RBAC and verify activities</option>
+            </select>
+            <span class="select-arrow">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
+            </span>
+          </div>
+        </div>
+
+        <!-- Submit Button -->
+        <button type="submit" id="btnSignIn" class="btn-signin">
+          <span id="btnText">SIGN IN</span>
+          <span id="btnSpinner" class="spinner" style="display: none;"></span>
+        </button>
+      </form>
+
+      <!-- Demo Accounts Card -->
+      <div class="demo-credentials-card" id="demoAccountsSection">
+        <div class="demo-header">
+          <span class="demo-title">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+            </svg>
+            Demo Accounts
+          </span>
+          <span class="demo-badge">DEVELOPMENT MODE</span>
+        </div>
+
+        <div class="demo-accounts-grid" style="grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));">
+          <!-- Admin Demo Account -->
+          <div class="demo-account-item" id="fillAdminCreds" title="Click to auto-fill Admin credentials">
+            <div class="demo-role-tag">
+              <span>Admin</span>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M5 12h14M12 5l7 7-7 7"/>
+              </svg>
+            </div>
+            <div class="demo-cred-line"><span class="demo-cred-label">User:</span> admin</div>
+            <div class="demo-cred-line"><span class="demo-cred-label">Pass:</span> admin123</div>
+            <div class="demo-click-hint">Click to fill</div>
+          </div>
+
+          <!-- User 1 Account (Actual Authenticated Wallet) -->
+          <div class="demo-account-item" id="fillUserCreds" title="Click to auto-fill user1 credentials">
+            <div class="demo-role-tag">
+              <span style="color: #38bdf8;">User 1</span>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M5 12h14M12 5l7 7-7 7"/>
+              </svg>
+            </div>
+            <div class="demo-cred-line"><span class="demo-cred-label">User:</span> user1</div>
+            <div class="demo-cred-line"><span class="demo-cred-label">Pass:</span> user123</div>
+            <div class="demo-click-hint" style="color: #818cf8; font-family: monospace;">0xfEF3...b5F3</div>
+          </div>
+
+          <!-- User 2 Account (Dynamic Second Wallet) -->
+          <div class="demo-account-item" id="fillUser2Creds" title="Click to auto-fill user2 credentials">
+            <div class="demo-role-tag">
+              <span style="color: #34d399;">User 2</span>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M5 12h14M12 5l7 7-7 7"/>
+              </svg>
+            </div>
+            <div class="demo-cred-line"><span class="demo-cred-label">User:</span> user2</div>
+            <div class="demo-cred-line"><span class="demo-cred-label">Pass:</span> user123</div>
+            <div class="demo-click-hint" style="color: #34d399; font-family: monospace;">0x2546...Ec30</div>
+          </div>
+        </div>
+
+        <!-- Custom Account Registration Toggle -->
+        <div style="margin-top: 14px; text-align: center; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 12px;">
+          <button type="button" id="btnToggleRegister" style="background: none; border: none; color: #818cf8; font-size: 0.8rem; cursor: pointer; text-decoration: underline;">
+            + Register a new custom user with custom wallet
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="login-footer-note">
+      Cryptographically secured by Credexa Smart Contract Infrastructure & Ethers.js
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      const loginForm = document.getElementById("loginForm");
+      const usernameInput = document.getElementById("loginUsername");
+      const passwordInput = document.getElementById("loginPassword");
+      const roleSelect = document.getElementById("loginRole");
+      const btnSignIn = document.getElementById("btnSignIn");
+      const btnText = document.getElementById("btnText");
+      const btnSpinner = document.getElementById("btnSpinner");
+      const loginAlert = document.getElementById("loginAlert");
+      const alertMessage = document.getElementById("alertMessage");
+      const togglePasswordBtn = document.getElementById("togglePasswordBtn");
+      const eyeIcon = document.getElementById("eyeIcon");
+
+      const fillAdminCreds = document.getElementById("fillAdminCreds");
+      const fillUserCreds = document.getElementById("fillUserCreds");
+      const fillUser2Creds = document.getElementById("fillUser2Creds");
+      const btnToggleRegister = document.getElementById("btnToggleRegister");
+
+      // Password toggle
+      let showPassword = false;
+      togglePasswordBtn.addEventListener("click", () => {
+        showPassword = !showPassword;
+        passwordInput.type = showPassword ? "text" : "password";
+        eyeIcon.innerHTML = showPassword
+          ? '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line>'
+          : '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle>';
+      });
+
+      // Quick fill helpers
+      if (fillAdminCreds) {
+        fillAdminCreds.addEventListener("click", () => {
+          usernameInput.value = "admin";
+          passwordInput.value = "admin123";
+          roleSelect.value = "Admin";
+          clearAlert();
+        });
+      }
+
+      if (fillUserCreds) {
+        fillUserCreds.addEventListener("click", () => {
+          usernameInput.value = "user1";
+          passwordInput.value = "user123";
+          roleSelect.value = "User";
+          clearAlert();
+        });
+      }
+
+      if (fillUser2Creds) {
+        fillUser2Creds.addEventListener("click", () => {
+          usernameInput.value = "user2";
+          passwordInput.value = "user123";
+          roleSelect.value = "User";
+          clearAlert();
+        });
+      }
+
+      if (btnToggleRegister) {
+        btnToggleRegister.addEventListener("click", async () => {
+          const u = window.prompt("Enter new username:");
+          if (!u || !u.trim()) return;
+          const p = window.prompt("Enter password for " + u + ":", "user123");
+          if (!p) return;
+          const w = window.prompt("Enter custom wallet address (0x...) or leave blank to auto-generate:");
+          try {
+            const res = await fetch("/api/auth/register", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                username: u.trim(),
+                password: p,
+                role: "User",
+                walletAddress: w && w.trim() ? w.trim() : undefined,
+              }),
+            });
+            const data = await res.json();
+            if (res.ok && data.success) {
+              showAlert(`Created account '${u}' with wallet: ${data.user.walletAddress}! You can now sign in.`, "success");
+              usernameInput.value = u.trim();
+              passwordInput.value = p;
+              roleSelect.value = "User";
+            } else {
+              showAlert(data.message || "Registration failed.", "error");
+            }
+          } catch (err) {
+            showAlert("Error registering user: " + err.message, "error");
+          }
+        });
+      }
+
+      function showAlert(msg, type = "error") {
+        loginAlert.className = `alert-banner alert-${type}`;
+        loginAlert.style.display = "flex";
+        alertMessage.textContent = msg;
+      }
+
+      function clearAlert() {
+        loginAlert.style.display = "none";
+        alertMessage.textContent = "";
+      }
+
+      function setLoading(loading) {
+        if (loading) {
+          btnSignIn.disabled = true;
+          btnText.textContent = "SIGNING IN...";
+          btnSpinner.style.display = "inline-block";
+        } else {
+          btnSignIn.disabled = false;
+          btnText.textContent = "SIGN IN";
+          btnSpinner.style.display = "none";
+        }
+      }
+
+      // Check if user is already authenticated
+      fetch("/api/auth/me")
+        .then(res => res.json())
+        .then(data => {
+          if (data && data.authenticated && data.user) {
+            window.location.href = data.user.role === "Admin" ? "/admin" : "/user";
+          }
+        })
+        .catch(() => {});
+
+      // Form submission
+      loginForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        clearAlert();
+
+        const username = usernameInput.value.trim();
+        const password = passwordInput.value;
+        const role = roleSelect.value;
+
+        if (!username || !password) {
+          showAlert("Please enter both username/email and password.");
+          return;
+        }
+
+        setLoading(true);
+
+        try {
+          const res = await fetch("/api/auth/login", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+              username: username,
+              password: password,
+              role: role
+            })
+          });
+
+          const data = await res.json();
+
+          if (res.ok && data.success) {
+            showAlert("Login successful! Redirecting...", "success");
+            setTimeout(() => {
+              window.location.href = data.redirectUrl || (role === "Admin" ? "/admin" : "/user");
+            }, 300);
+          } else {
+            setLoading(false);
+            // Show exact error message returned by server
+            showAlert(data.message || "Authentication failed. Please check your credentials.");
+          }
+        } catch (err) {
+          setLoading(false);
+          console.error("Login request error:", err);
+          showAlert("Unable to connect to authentication server. Please try again.");
+        }
+      });
+    });
+  </script>
+</body>
+</html>

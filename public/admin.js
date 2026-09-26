@@ -378,6 +378,101 @@ document.addEventListener("DOMContentLoaded", () => {
     renderAuditTrailJson();
   });
 
+  // Button: User Management
+  const btnActionUsers = document.getElementById("btnActionUsers");
+  if (btnActionUsers) {
+    btnActionUsers.addEventListener("click", async () => {
+      openModal("modalUserManagement");
+      await loadUserManagementTable();
+    });
+  }
+
+  async function loadUserManagementTable() {
+    const tbody = document.getElementById("userManagementTableBody");
+    if (!tbody) return;
+    tbody.innerHTML = `<tr><td colspan="6" style="padding: 20px; text-align: center; color: var(--text-muted);"><div class="spinner" style="margin: 0 auto 8px;"></div>Loading users...</td></tr>`;
+
+    try {
+      const res = await fetch("/api/admin/users");
+      const data = await res.json();
+      if (data.success && data.users) {
+        tbody.innerHTML = data.users.map(u => `
+          <tr style="border-bottom: 1px solid rgba(255,255,255,0.04);">
+            <td style="padding: 10px 14px; font-weight: 600; color: #fff;">${escapeHtml(u.username)}</td>
+            <td style="padding: 10px 14px; color: #94a3b8;">${escapeHtml(u.email || "N/A")}</td>
+            <td style="padding: 10px 14px;">
+              <span class="role-badge role-badge-${u.role.toUpperCase()}" style="font-size: 0.72rem; padding: 2px 8px;">${u.role}</span>
+            </td>
+            <td style="padding: 10px 14px; font-family: var(--font-mono); font-size: 0.78rem; color: #cbd5e1;">${u.walletAddress ? `${u.walletAddress.slice(0, 8)}...${u.walletAddress.slice(-6)}` : "None"}</td>
+            <td style="padding: 10px 14px; color: #34d399; font-size: 0.78rem;">✓ Bcrypt Hashed</td>
+            <td style="padding: 10px 14px;"><span class="badge" style="background: rgba(16,185,129,0.15); color: #34d399; font-size: 0.7rem;">Active</span></td>
+          </tr>
+        `).join("");
+      }
+    } catch (err) {
+      tbody.innerHTML = `<tr><td colspan="6" style="padding: 15px; color: #f87171; text-align: center;">Error loading users</td></tr>`;
+    }
+  }
+
+  // Button: System Settings
+  const btnActionSettings = document.getElementById("btnActionSettings");
+  if (btnActionSettings) {
+    btnActionSettings.addEventListener("click", () => {
+      openModal("modalSettings");
+      const settingsContract = document.getElementById("settingsContract");
+      const settingsRelayer = document.getElementById("settingsRelayer");
+      if (settingsContract) settingsContract.textContent = fullContractAddress || "0x5FbDB2315678afecb367f032d93F642f64180aa3";
+      if (settingsRelayer) settingsRelayer.textContent = relayerBalanceVal.title ? relayerBalanceVal.title.replace("Relayer: ", "") : "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266";
+    });
+  }
+
+  // Admin Logout Button
+  const adminLogoutBtn = document.getElementById("adminLogoutBtn");
+  if (adminLogoutBtn) {
+    adminLogoutBtn.addEventListener("click", async () => {
+      try {
+        const res = await fetch("/api/auth/logout", { method: "POST" });
+        const data = await res.json();
+        window.location.href = data.redirectUrl || "/login";
+      } catch {
+        window.location.href = "/login";
+      }
+    });
+  }
+
+  // Session & Role Verification on Load
+  async function checkAdminAuth() {
+    try {
+      const res = await fetch("/api/auth/me");
+      const data = await res.json();
+      if (!data.authenticated || !data.user) {
+        window.location.href = "/login";
+        return;
+      }
+      if (data.user.role !== "Admin") {
+        window.location.href = "/user";
+        return;
+      }
+      const adminUsernameDisplay = document.getElementById("adminUsernameDisplay");
+      if (adminUsernameDisplay) {
+        adminUsernameDisplay.textContent = data.user.username;
+      }
+    } catch (e) {
+      console.error("Admin auth check failed:", e);
+    }
+  }
+  checkAdminAuth();
+
+  function escapeHtml(str) {
+    if (!str) return "";
+    return String(str)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+
   // Quick fill buttons inside modals
   document.querySelectorAll("[data-fill-modal]").forEach((btn) => {
     btn.addEventListener("click", () => {
@@ -564,7 +659,13 @@ document.addEventListener("DOMContentLoaded", () => {
                   <span class="action-badge badge-nft-minted" style="font-size: 0.7rem;">${type}</span>
                 </div>
                 <div style="font-weight: 700; font-size: 0.95rem; color: #fff;">${name}</div>
-                <div style="font-size: 0.75rem; color: var(--text-muted); font-family: var(--font-mono);">Owner: ${shortOwner}</div>
+                <div style="font-size: 0.75rem; color: var(--text-muted); font-family: var(--font-mono); display: flex; align-items: center; gap: 6px;">
+                  <span>Owner: <strong style="color: #cbd5e1;">${asset.ownerName || shortOwner}</strong> (${shortOwner})</span>
+                  ${asset.isLegacyDemo ? `<span style="font-size: 0.65rem; background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); padding: 1px 4px; border-radius: 3px;">Seed Data</span>` : ""}
+                </div>
+                <div style="font-size: 0.72rem; color: var(--secondary); font-family: var(--font-mono);">
+                  DID: ${asset.ownerDid ? `${asset.ownerDid.slice(0, 18)}...` : `did:ethr:${shortOwner}`}
+                </div>
                 <button class="chip-btn" style="width: fit-content; margin-top: 4px;" onclick="window.copyText('${asset.tokenURI || ""}', 'Token URI')">Copy Token URI</button>
               </div>
             `;
@@ -591,7 +692,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `aetherid-blockchain-audit-${Date.now()}.json`;
+    a.download = `credexa-blockchain-audit-${Date.now()}.json`;
     a.click();
     showToast("Audit trail JSON downloaded.");
   });

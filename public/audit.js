@@ -275,7 +275,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `aetherid-audit-trail-${Date.now()}.json`;
+    a.download = `credexa-audit-trail-${Date.now()}.json`;
     a.click();
     showToast("Audit trail JSON exported.");
   });
@@ -301,7 +301,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `aetherid-audit-trail-${Date.now()}.csv`;
+    a.download = `credexa-audit-trail-${Date.now()}.csv`;
     a.click();
     showToast("Audit trail CSV exported.");
   });

@@ -140,7 +140,21 @@ contract IdentityAssetManager is ERC721URIStorage, AccessControl {
      * @param user The address to query.
      */
     function getUserAssets(address user) external view returns (uint256[] memory) {
-        return _userAssets[user];
+        uint256 total = _nextTokenId;
+        uint256 count = 0;
+        for (uint256 i = 1; i <= total; i++) {
+            if (_ownerOf(i) == user) {
+                count++;
+            }
+        }
+        uint256[] memory assets = new uint256[](count);
+        uint256 index = 0;
+        for (uint256 i = 1; i <= total; i++) {
+            if (_ownerOf(i) == user) {
+                assets[index++] = i;
+            }
+        }
+        return assets;
     }
 
     /**
@@ -153,6 +167,22 @@ contract IdentityAssetManager is ERC721URIStorage, AccessControl {
     // ==========================================
     // OVERRIDES & INTERFACES
     // ==========================================
+
+    /**
+     * @dev Overrides ERC721 `_isAuthorized` to allow accounts with MANAGER_ROLE or DEFAULT_ADMIN_ROLE
+     * to manage and transfer assets under their governance, while preserving standard ERC721 authorization
+     * (token owner, approved operator, approved address).
+     */
+    function _isAuthorized(
+        address owner,
+        address spender,
+        uint256 tokenId
+    ) internal view virtual override returns (bool) {
+        return
+            super._isAuthorized(owner, spender, tokenId) ||
+            hasRole(MANAGER_ROLE, spender) ||
+            hasRole(DEFAULT_ADMIN_ROLE, spender);
+    }
 
     /**
      * @dev Required override for ERC721URIStorage and AccessControl.

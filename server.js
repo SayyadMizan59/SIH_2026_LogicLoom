@@ -3,15 +3,209 @@ const cors = require("cors");
 const { ethers } = require("ethers");
 const fs = require("fs");
 const path = require("path");
+const crypto = require("crypto");
+const bcrypt = require("bcryptjs");
+const session = require("express-session");
 require("dotenv").config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Middleware
+// Base Middlewares
 app.use(cors());
 app.use(express.json());
-app.use(express.static(path.join(__dirname, "public")));
+app.use(express.urlencoded({ extended: true }));
+
+// Express Session Configuration
+app.use(
+  session({
+    name: "aetherid_sid",
+    secret: process.env.SESSION_SECRET || "aetherid_production_secret_key_2026",
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      httpOnly: true,
+      secure: false, // Set to true if running over HTTPS
+      sameSite: "lax",
+      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+    },
+  })
+);
+
+// User Accounts Store (Passwords securely hashed with bcrypt)
+const USERS = [
+  {
+    id: "usr_admin",
+    username: "admin",
+    email: "admin@credexa.io",
+    passwordHash: bcrypt.hashSync("admin123", 10),
+    role: "Admin",
+    name: "System Administrator",
+    walletAddress: "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266", // Hardhat Account #0
+    createdAt: "2026-01-01T00:00:00Z",
+  },
+  {
+    id: "usr_user1",
+    username: "user1",
+    email: "user1@credexa.io",
+    passwordHash: bcrypt.hashSync("user123", 10),
+    role: "User",
+    name: "user1",
+    walletAddress: "0xfEF312E0C09E14547363ED2218A199324285b5F3", // Authenticated user's actual wallet
+    createdAt: "2026-01-15T00:00:00Z",
+  },
+  {
+    id: "usr_user2",
+    username: "user2",
+    email: "user2@credexa.io",
+    passwordHash: bcrypt.hashSync("user123", 10),
+    role: "User",
+    name: "user2",
+    walletAddress: "0x2546BcD3c84621e976D8185a91A922aE77ECEc30", // Hardhat Account #4
+    createdAt: "2026-02-01T00:00:00Z",
+  },
+  {
+    id: "usr_1790422491753",
+    username: "user3",
+    email: "user3@credexa.io",
+    passwordHash: bcrypt.hashSync("user123", 10),
+    role: "Manager",
+    name: "user3",
+    walletAddress: "0x690e1F6FdBF4C8010821332c860EC0E77b1441D3",
+    createdAt: "2026-09-26T11:34:51.837Z",
+  },
+];
+
+/**
+ * Dynamically resolves an Ethereum wallet address to an authenticated or registered user in USERS.
+ */
+function resolveUserByAddress(address) {
+  if (!address || !ethers.isAddress(address)) return null;
+  const targetLower = address.toLowerCase();
+  const matched = USERS.find(
+    (u) => u.walletAddress && u.walletAddress.toLowerCase() === targetLower
+  );
+  if (matched) {
+    return {
+      username: matched.username,
+      name: matched.name || matched.username,
+      role: matched.role,
+      walletAddress: matched.walletAddress,
+      isRegisteredUser: true,
+    };
+  }
+  return null;
+}
+
+// Authentication & Role Authorization Middlewares
+function requireAuth(req, res, next) {
+  if (!req.session || !req.session.user) {
+    if (req.originalUrl && req.originalUrl.startsWith("/api/")) {
+      return res.status(401).json({ success: false, error: "Unauthorized. Please log in." });
+    }
+    return res.redirect("/login");
+  }
+  next();
+}
+
+function requireRole(requiredRole) {
+  return (req, res, next) => {
+    if (!req.session || !req.session.user) {
+      if (req.originalUrl && req.originalUrl.startsWith("/api/")) {
+        return res.status(401).json({ success: false, error: "Unauthorized. Please log in." });
+      }
+      return res.redirect("/login");
+    }
+    if (req.session.user.role !== requiredRole) {
+      if (req.originalUrl && req.originalUrl.startsWith("/api/")) {
+        return res.status(403).json({ success: false, error: `Forbidden. Requires ${requiredRole} role.` });
+      }
+      return res.status(403).send(`
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>403 Forbidden — Access Denied</title>
+          <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&display=swap" rel="stylesheet">
+          <style>
+            body { background: #090c15; color: #f8fafc; font-family: 'Outfit', sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }
+            .box { background: rgba(18, 24, 38, 0.9); border: 1px solid rgba(239, 68, 68, 0.4); padding: 40px; border-radius: 16px; text-align: center; max-width: 480px; box-shadow: 0 10px 40px rgba(239, 68, 68, 0.2); }
+            h1 { color: #f87171; margin-top: 0; font-size: 1.6rem; }
+            p { color: #94a3b8; font-size: 0.95rem; line-height: 1.6; }
+            .btn { display: inline-block; margin-top: 20px; padding: 12px 28px; background: #6366f1; color: white; text-decoration: none; border-radius: 8px; font-weight: 600; }
+            .btn:hover { background: #4f46e5; }
+          </style>
+        </head>
+        <body>
+          <div class="box">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#f87171" stroke-width="2" style="margin-bottom: 16px;">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line>
+            </svg>
+            <h1>Access Denied (403)</h1>
+            <p>You do not have administrative privileges to access this page.</p>
+            <p>Authenticated as: <strong style="color: #fff;">${req.session.user.username}</strong> (${req.session.user.role})</p>
+            <a href="/user" class="btn">Return to User Dashboard</a>
+          </div>
+        </body>
+        </html>
+      `);
+    }
+    next();
+  };
+}
+
+// ==========================================
+// PAGE ROUTING & NAVIGATION
+// ==========================================
+
+// Root route: Redirect based on authentication status and user role
+app.get("/", (req, res) => {
+  if (!req.session || !req.session.user) {
+    return res.redirect("/login");
+  }
+  if (req.session.user.role === "Admin") {
+    return res.redirect("/admin");
+  }
+  return res.redirect("/user");
+});
+
+// Login Page Route
+app.get("/login", (req, res) => {
+  if (req.session && req.session.user) {
+    return res.redirect(req.session.user.role === "Admin" ? "/admin" : "/user");
+  }
+  res.sendFile(path.join(__dirname, "public", "login.html"));
+});
+
+// Protected UI Pages
+app.get(["/admin", "/admin.html"], requireRole("Admin"), (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "admin.html"));
+});
+
+app.get(["/user", "/user.html"], requireAuth, (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "user.html"));
+});
+
+app.get(["/roles", "/roles.html"], requireRole("Admin"), (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "roles.html"));
+});
+
+app.get(["/assets", "/assets.html"], requireAuth, (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "assets.html"));
+});
+
+app.get(["/audit", "/audit.html"], requireRole("Admin"), (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "audit.html"));
+});
+
+app.get(["/demo", "/demo.html"], requireAuth, (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "demo.html"));
+});
+
+// Static files (with index: false so "/" is always handled by app.get("/"))
+app.use(express.static(path.join(__dirname, "public"), { index: false }));
 
 // Configuration
 const RPC_URL = process.env.RPC_URL || "http://127.0.0.1:8545";
@@ -140,6 +334,684 @@ app.get("/api/health", async (req, res) => {
   }
 });
 
+// ==========================================
+// AUTHENTICATION & SESSION API ENDPOINTS
+// ==========================================
+
+/**
+ * POST /api/auth/login
+ * Validates credentials and verifies user role.
+ */
+app.post("/api/auth/login", async (req, res) => {
+  const { username, password, role } = req.body || {};
+
+  if (!username || !password || !role) {
+    return res.status(400).json({
+      success: false,
+      message: "Username, password, and role are required.",
+    });
+  }
+
+  const lookup = username.trim().toLowerCase();
+  const user = USERS.find(
+    (u) => u.username.toLowerCase() === lookup || u.email.toLowerCase() === lookup
+  );
+
+  // If wrong username or password
+  if (!user || !bcrypt.compareSync(password, user.passwordHash)) {
+    return res.status(401).json({
+      success: false,
+      message: "Invalid username or password.",
+    });
+  }
+
+  // Role check: support both database role and on-chain permissions
+  const selectedRole = role.trim().toLowerCase();
+  let roleMatches = user.role.toLowerCase() === selectedRole;
+  if (!roleMatches && contract && user.walletAddress) {
+    try {
+      if (selectedRole === "manager") {
+        roleMatches = await contract.hasRole(ROLE_HASHES.MANAGER_ROLE, user.walletAddress);
+      } else if (selectedRole === "admin") {
+        roleMatches = await contract.hasRole(ROLE_HASHES.DEFAULT_ADMIN_ROLE, user.walletAddress);
+      } else if (selectedRole === "auditor") {
+        roleMatches = await contract.hasRole(ROLE_HASHES.AUDITOR_ROLE, user.walletAddress);
+      } else if (selectedRole === "user") {
+        roleMatches = true;
+      }
+    } catch {}
+  }
+
+  if (!roleMatches) {
+    return res.status(403).json({
+      success: false,
+      message: "Invalid role selected for this account.",
+    });
+  }
+
+  const effectiveRole = selectedRole === "manager" ? "Manager" : (selectedRole === "admin" ? "Admin" : user.role);
+
+  // Create session
+  req.session.user = {
+    id: user.id,
+    username: user.username,
+    email: user.email,
+    role: effectiveRole,
+    name: user.name,
+    walletAddress: user.walletAddress,
+  };
+
+  const redirectUrl = user.role === "Admin" ? "/admin" : "/user";
+
+  return res.json({
+    success: true,
+    message: "Login successful.",
+    user: req.session.user,
+    redirectUrl,
+  });
+});
+
+/**
+ * POST /api/auth/register
+ * Allows dynamically registering a new user with their own wallet address and role.
+ */
+app.post("/api/auth/register", (req, res) => {
+  const { username, password, email, role = "User", name, walletAddress } = req.body || {};
+
+  if (!username || !password) {
+    return res.status(400).json({
+      success: false,
+      message: "Username and password are required.",
+    });
+  }
+
+  const cleanUsername = username.trim();
+  const lookup = cleanUsername.toLowerCase();
+
+  if (USERS.some((u) => u.username.toLowerCase() === lookup)) {
+    return res.status(400).json({
+      success: false,
+      message: `User '${cleanUsername}' already exists. Please choose a different username.`,
+    });
+  }
+
+  // Validate or assign wallet address
+  let userWallet = "";
+  if (walletAddress && ethers.isAddress(walletAddress.trim())) {
+    userWallet = ethers.getAddress(walletAddress.trim());
+  } else {
+    // Generate fresh sovereign wallet for this user
+    userWallet = ethers.Wallet.createRandom().address;
+  }
+
+  const newUser = {
+    id: `usr_${Date.now()}`,
+    username: cleanUsername,
+    email: email ? email.trim() : `${cleanUsername}@credexa.io`,
+    passwordHash: bcrypt.hashSync(password, 10),
+    role: role === "Admin" ? "Admin" : "User",
+    name: name ? name.trim() : cleanUsername,
+    walletAddress: userWallet,
+    createdAt: new Date().toISOString(),
+  };
+
+  USERS.push(newUser);
+
+  console.log(`[Auth] Registered new user: ${newUser.username} (${newUser.role}) with wallet: ${newUser.walletAddress}`);
+
+  return res.status(201).json({
+    success: true,
+    message: `Account created successfully for ${newUser.username}!`,
+    user: {
+      username: newUser.username,
+      role: newUser.role,
+      name: newUser.name,
+      walletAddress: newUser.walletAddress,
+    },
+    redirectUrl: "/login",
+  });
+});
+
+/**
+ * POST /api/auth/logout
+ * Destroys session and clears cookie.
+ */
+app.post("/api/auth/logout", (req, res) => {
+  if (req.session) {
+    req.session.destroy(() => {
+      res.clearCookie("aetherid_sid");
+      return res.json({ success: true, redirectUrl: "/login" });
+    });
+  } else {
+    res.clearCookie("aetherid_sid");
+    return res.json({ success: true, redirectUrl: "/login" });
+  }
+});
+
+/**
+ * GET /logout
+ * Destroys session and redirects to /login.
+ */
+app.get("/logout", (req, res) => {
+  if (req.session) {
+    req.session.destroy(() => {
+      res.clearCookie("aetherid_sid");
+      return res.redirect("/login");
+    });
+  } else {
+    res.clearCookie("aetherid_sid");
+    return res.redirect("/login");
+  }
+});
+
+/**
+ * GET /api/auth/me
+ * Returns current authenticated user state.
+ */
+app.get("/api/auth/me", (req, res) => {
+  if (req.session && req.session.user) {
+    return res.json({ authenticated: true, user: req.session.user });
+  }
+  return res.json({ authenticated: false, user: null });
+});
+
+/**
+ * GET /api/admin/users
+ * Returns list of registered users for admin management.
+ */
+app.get("/api/admin/users", requireRole("Admin"), (req, res) => {
+  const sanitized = USERS.map((u) => ({
+    id: u.id,
+    username: u.username,
+    email: u.email,
+    role: u.role,
+    name: u.name,
+    walletAddress: u.walletAddress,
+    createdAt: u.createdAt,
+  }));
+  res.json({ success: true, users: sanitized });
+});
+
+/**
+ * GET /api/user/profile
+ * Returns authenticated user's profile.
+ */
+app.get("/api/user/profile", requireAuth, (req, res) => {
+  res.json({ success: true, user: req.session.user });
+});
+
+/**
+ * POST /api/user/wallet
+ * Allows the authenticated user to update or reassign their wallet address dynamically.
+ */
+app.post("/api/user/wallet", requireAuth, (req, res) => {
+  const { walletAddress } = req.body || {};
+
+  if (!walletAddress || !ethers.isAddress(walletAddress.trim())) {
+    return res.status(400).json({
+      success: false,
+      message: "A valid Ethereum wallet address is required.",
+    });
+  }
+
+  const checksumAddr = ethers.getAddress(walletAddress.trim());
+
+  // Update in USERS database store
+  const user = USERS.find(
+    (u) =>
+      u.id === req.session.user.id ||
+      u.username.toLowerCase() === req.session.user.username.toLowerCase()
+  );
+  if (user) {
+    user.walletAddress = checksumAddr;
+  }
+
+  // Update active session
+  req.session.user.walletAddress = checksumAddr;
+
+  console.log(`[User] Updated wallet for ${req.session.user.username} to: ${checksumAddr}`);
+
+  return res.json({
+    success: true,
+    message: "Wallet address successfully updated.",
+    walletAddress: checksumAddr,
+    user: req.session.user,
+  });
+});
+
+/**
+ * GET /api/user/identity
+ * Returns on-chain identity for logged in user.
+ */
+app.get("/api/user/identity", requireAuth, ensureContractReady, async (req, res) => {
+  try {
+    const userWallet = req.session.user.walletAddress;
+    const [didURI, createdAt, exists] = await contract.getIdentity(userWallet);
+    const resolvedDid = exists ? didURI : `did:ethr:${userWallet}`;
+
+    res.json({
+      success: true,
+      identity: {
+        address: userWallet,
+        didURI: resolvedDid,
+        exists: exists,
+        createdAt: exists ? Number(createdAt) * 1000 : null,
+      },
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+/**
+ * GET /api/user/assets
+ * Returns only the credentials / NFTs owned by the authenticated user.
+ */
+app.get("/api/user/assets", requireAuth, ensureContractReady, async (req, res) => {
+  try {
+    const userWallet = req.session.user.walletAddress;
+    const tokenIds = await contract.getUserAssets(userWallet);
+
+    const assetPromises = tokenIds.map(async (tokenIdBn) => {
+      const tokenId = tokenIdBn.toString();
+      try {
+        const tokenURI = await contract.tokenURI(tokenId);
+        let metadata = {};
+        if (tokenURI && tokenURI.startsWith("data:application/json;base64,")) {
+          const base64Data = tokenURI.replace("data:application/json;base64,", "");
+          metadata = JSON.parse(Buffer.from(base64Data, "base64").toString("utf8"));
+        }
+
+        const details = metadata.attributes
+          ? metadata.attributes.reduce((acc, curr) => {
+              acc[curr.trait_type] = curr.value;
+              return acc;
+            }, {})
+          : {};
+
+        const docHash =
+          metadata.documentHash ||
+          details["Document Hash (SHA-256)"] ||
+          details["Document Hash"] ||
+          null;
+
+        return {
+          tokenId,
+          tokenURI,
+          owner: userWallet,
+          name: metadata.name || `Credential #${tokenId}`,
+          type:
+            details["Credential Type"] ||
+            details["Asset Type"] ||
+            metadata.assetType ||
+            "Digital Asset",
+          fullName:
+            details["Holder"] ||
+            details["Full Name"] ||
+            metadata.holder ||
+            req.session.user.name ||
+            req.session.user.username,
+          identifier:
+            details["Credential ID"] ||
+            details["License Number"] ||
+            details["Certificate Number"] ||
+            `ID-${tokenId}`,
+          category: details["Category"] || "Class A",
+          issueDate: details["Issue Date"] || metadata.issuedAt || "2026",
+          expiryDate: details["Expiry Date"] || "2036",
+          authority:
+            details["Issuing Authority"] ||
+            details["Issuer"] ||
+            metadata.issuer ||
+            "Credexa Authority",
+          issuer: metadata.issuer || details["Issuing Authority"] || "Credexa Authority",
+          status: details["Verification Status"] || details["Status"] || "Verified On-Chain",
+          documentHash: docHash,
+          documentName: metadata.documentName || details["Document Name"] || null,
+          documentSize: metadata.documentSize || details["Document Size"] || null,
+          description: metadata.description || "",
+          attributes: metadata.attributes || [],
+        };
+      } catch (e) {
+        return {
+          tokenId,
+          owner: userWallet,
+          name: `Credential #${tokenId}`,
+          type: "Digital Asset",
+          fullName: req.session.user.username,
+          status: "Verified On-Chain",
+        };
+      }
+    });
+
+    const assets = await Promise.all(assetPromises);
+    res.json({ success: true, assets });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+/**
+ * POST /api/user/credentials/upload
+ * Authenticated endpoint for a user to upload/submit a credential document and mint it to their own wallet.
+ * Uses the logged-in session identity and cannot be forged.
+ */
+app.post("/api/user/credentials/upload", requireAuth, ensureContractReady, async (req, res) => {
+  try {
+    const userWallet = ethers.getAddress(req.session.user.walletAddress);
+    const username = req.session.user.username;
+    const holderName = username;
+
+    const {
+      name,
+      assetType = "Driving License",
+      issuer = "Credexa Credential Authority",
+      identifier,
+      category = "Standard",
+      description = "",
+      documentName = "credential-document.pdf",
+      documentHash,
+      documentSize = "Verified File",
+    } = req.body || {};
+
+    const computedDocHash =
+      documentHash ||
+      `0x${crypto
+        .createHash("sha256")
+        .update(String(name || "") + String(identifier || "") + Date.now())
+        .digest("hex")}`;
+
+    const credId = identifier || `CRED-${Date.now().toString().slice(-6)}`;
+
+    // Resolve user's actual on-chain DID or fallback to standard ethr DID
+    let userDid = `did:ethr:${userWallet}`;
+    try {
+      const [didURI, , exists] = await contract.getIdentity(userWallet);
+      if (exists && didURI) userDid = didURI;
+    } catch {}
+
+    // Construct ERC-721 metadata structure strictly bound to authenticated user
+    const metadata = {
+      name: name || `${assetType} - ${holderName}`,
+      description:
+        description ||
+        `Decentralized verifiable credential (${assetType}) cryptographically secured on-chain.`,
+      image: `https://api.dicebear.com/7.x/identicon/svg?seed=${encodeURIComponent(userWallet)}`,
+      assetType: assetType,
+      issuedAt: new Date().toISOString(),
+      issuer: issuer || "Credexa Credential Authority",
+      recipient: userWallet,
+      owner: userWallet,
+      ownerName: holderName,
+      ownerDid: userDid,
+      documentHash: computedDocHash,
+      documentName: documentName,
+      documentSize: documentSize,
+      attributes: [
+        { trait_type: "Credential Type", value: assetType },
+        { trait_type: "Holder", value: holderName },
+        { trait_type: "Owner", value: holderName },
+        { trait_type: "Owner Wallet", value: userWallet },
+        { trait_type: "Owner DID", value: userDid },
+        { trait_type: "Issuing Authority", value: issuer || "Credexa Credential Authority" },
+        { trait_type: "Credential ID", value: credId },
+        { trait_type: "Category", value: category },
+        { trait_type: "Document Hash (SHA-256)", value: computedDocHash },
+        { trait_type: "Document Name", value: documentName },
+        { trait_type: "Issue Date", value: new Date().toISOString().split("T")[0] },
+        { trait_type: "Verification Status", value: "Verified On-Chain" },
+      ],
+    };
+
+    // Encode metadata as base64 Data URI
+    const encodedMetadata = Buffer.from(JSON.stringify(metadata)).toString("base64");
+    const tokenURI = `data:application/json;base64,${encodedMetadata}`;
+
+    console.log(`[API] User ${req.session.user.username} uploading credential for wallet: ${userWallet}`);
+
+    // Execute mint transaction safely through relayer queue
+    const receipt = await executeRelayerTx(async (nonce) => {
+      const tx = await contract.mintDigitalAsset(userWallet, tokenURI, { nonce });
+      return await tx.wait();
+    });
+
+    // Parse AssetMinted event from receipt
+    let mintedTokenId = null;
+    for (const log of receipt.logs) {
+      try {
+        const parsed = contract.interface.parseLog(log);
+        if (parsed && parsed.name === "AssetMinted") {
+          mintedTokenId = parsed.args.tokenId.toString();
+          break;
+        }
+      } catch {}
+    }
+
+    res.status(201).json({
+      success: true,
+      message: "Credential successfully processed, uploaded, and minted on-chain!",
+      credential: {
+        tokenId: mintedTokenId,
+        recipient: userWallet,
+        name: metadata.name,
+        type: assetType,
+        issuer: issuer,
+        identifier: credId,
+        documentHash: computedDocHash,
+        documentName: documentName,
+        transactionHash: receipt.hash,
+        blockNumber: receipt.blockNumber,
+        status: "Verified On-Chain",
+      },
+    });
+  } catch (error) {
+    console.error("[API] Error uploading credential:", error);
+    res.status(500).json({
+      success: false,
+      error: error.reason || error.message || "Failed to process and mint credential on-chain.",
+    });
+  }
+});
+
+/**
+ * POST /api/user/credentials/verify
+ * Authenticated endpoint for users to verify a credential by Token ID or Document Hash.
+ */
+app.post("/api/user/credentials/verify", requireAuth, ensureContractReady, async (req, res) => {
+  try {
+    const { query } = req.body || {};
+    if (!query) {
+      return res.status(400).json({
+        success: false,
+        verified: false,
+        error: "Credential ID or Hash query is required.",
+      });
+    }
+
+    const cleanQuery = String(query).trim().replace(/^#/, "");
+
+    // Case 1: Query is a numeric Token ID
+    if (/^\d+$/.test(cleanQuery)) {
+      const tid = BigInt(cleanQuery);
+      try {
+        const owner = await contract.ownerOf(tid);
+        const uri = await contract.tokenURI(tid);
+        const [didURI, createdAt, identityExists] = await contract.getIdentity(owner);
+
+        let parsedMetadata = {};
+        if (uri && uri.startsWith("data:application/json;base64,")) {
+          const jsonStr = Buffer.from(
+            uri.replace("data:application/json;base64,", ""),
+            "base64"
+          ).toString("utf8");
+          parsedMetadata = JSON.parse(jsonStr);
+        }
+
+        const details = parsedMetadata.attributes
+          ? parsedMetadata.attributes.reduce((acc, curr) => {
+              acc[curr.trait_type] = curr.value;
+              return acc;
+            }, {})
+          : {};
+
+        return res.json({
+          success: true,
+          verified: true,
+          data: {
+            tokenId: cleanQuery,
+            name: parsedMetadata.name || `Credential #${cleanQuery}`,
+            type:
+              details["Credential Type"] ||
+              details["Asset Type"] ||
+              parsedMetadata.assetType ||
+              "Digital Credential",
+            issuer: parsedMetadata.issuer || details["Issuing Authority"] || "Credexa Authority",
+            owner: owner,
+            ownerDid: identityExists ? didURI : `did:ethr:${owner}`,
+            didRegistered: identityExists,
+            issuedAt: parsedMetadata.issuedAt || details["Issue Date"] || "2026",
+            documentHash:
+              parsedMetadata.documentHash ||
+              details["Document Hash (SHA-256)"] ||
+              details["Document Hash"] ||
+              "None",
+            documentName: parsedMetadata.documentName || details["Document Name"] || "N/A",
+            contractAddress: contractAddress,
+            attributes: parsedMetadata.attributes || [],
+          },
+        });
+      } catch (err) {
+        return res.status(404).json({
+          success: false,
+          verified: false,
+          error: `Credential Token #${cleanQuery} does not exist on the smart contract ledger.`,
+        });
+      }
+    }
+
+    // Case 2: Query is an Ethereum Address
+    if (ethers.isAddress(cleanQuery)) {
+      const formattedAddress = ethers.getAddress(cleanQuery);
+      const [didURI, createdAt, identityExists] = await contract.getIdentity(formattedAddress);
+      const tokenIds = await contract.getUserAssets(formattedAddress);
+
+      return res.json({
+        success: true,
+        verified: identityExists || tokenIds.length > 0,
+        data: {
+          address: formattedAddress,
+          didURI: identityExists ? didURI : `did:ethr:${formattedAddress}`,
+          didRegistered: identityExists,
+          ownedAssetsCount: tokenIds.length,
+          contractAddress: contractAddress,
+        },
+      });
+    }
+
+    // Case 3: Query is a Document Hash (search in on-chain assets)
+    const totalAssetsBig = await contract.totalAssets();
+    const total = Number(totalAssetsBig);
+    let matchedAsset = null;
+
+    for (let i = 1; i <= total; i++) {
+      try {
+        const uri = await contract.tokenURI(i);
+        if (uri && uri.startsWith("data:application/json;base64,")) {
+          const jsonStr = Buffer.from(
+            uri.replace("data:application/json;base64,", ""),
+            "base64"
+          ).toString("utf8");
+          const meta = JSON.parse(jsonStr);
+          const docHash =
+            meta.documentHash ||
+            (meta.attributes &&
+              meta.attributes.find((a) => a.trait_type && a.trait_type.includes("Hash"))?.value);
+          if (
+            docHash &&
+            (docHash.toLowerCase() === cleanQuery.toLowerCase() ||
+              docHash.toLowerCase().includes(cleanQuery.toLowerCase()))
+          ) {
+            const owner = await contract.ownerOf(i);
+            const [didURI] = await contract.getIdentity(owner);
+            matchedAsset = {
+              tokenId: i.toString(),
+              name: meta.name || `Credential #${i}`,
+              type: meta.assetType || "Digital Asset",
+              issuer: meta.issuer || "Credexa Authority",
+              owner: owner,
+              ownerDid: didURI || `did:ethr:${owner}`,
+              issuedAt: meta.issuedAt,
+              documentHash: docHash,
+              documentName: meta.documentName,
+            };
+            break;
+          }
+        }
+      } catch {}
+    }
+
+    if (matchedAsset) {
+      return res.json({
+        success: true,
+        verified: true,
+        data: matchedAsset,
+      });
+    }
+
+    return res.status(404).json({
+      success: false,
+      verified: false,
+      error: `No on-chain credential matched query: "${cleanQuery}".`,
+    });
+  } catch (error) {
+    console.error("[API] Error verifying credential:", error);
+    res.status(500).json({
+      success: false,
+      verified: false,
+      error: error.message || "Failed to execute cryptographic verification query.",
+    });
+  }
+});
+
+/**
+ * GET /api/user/credentials/:tokenId
+ * Returns specific credential only if owned by the authenticated session user.
+ */
+app.get("/api/user/credentials/:tokenId", requireAuth, ensureContractReady, async (req, res) => {
+  try {
+    const tid = BigInt(req.params.tokenId);
+    const owner = await contract.ownerOf(tid);
+
+    // Enforce user isolation: User cannot access another user's credential details
+    if (owner.toLowerCase() !== req.session.user.walletAddress.toLowerCase()) {
+      return res.status(403).json({
+        success: false,
+        error: "Access Denied: You do not have permission to access another user's credential.",
+      });
+    }
+
+    const uri = await contract.tokenURI(tid);
+    let metadata = {};
+    if (uri && uri.startsWith("data:application/json;base64,")) {
+      metadata = JSON.parse(
+        Buffer.from(uri.replace("data:application/json;base64,", ""), "base64").toString("utf8")
+      );
+    }
+
+    res.json({
+      success: true,
+      credential: {
+        tokenId: req.params.tokenId,
+        owner,
+        tokenURI: uri,
+        metadata,
+      },
+    });
+  } catch (err) {
+    res.status(404).json({ success: false, error: "Credential not found on blockchain." });
+  }
+});
+
 /**
  * POST /api/identities
  * Generates a mock DID for a user and registers it on-chain.
@@ -207,20 +1079,50 @@ app.post("/api/assets/mint", ensureContractReady, async (req, res) => {
     }
 
     const formattedRecipient = ethers.getAddress(to);
+    const matchedUser = resolveUserByAddress(formattedRecipient);
+    const resolvedHolder =
+      details.fullName ||
+      (matchedUser ? matchedUser.username : null) ||
+      (req.session?.user?.walletAddress?.toLowerCase() === formattedRecipient.toLowerCase()
+        ? req.session.user.username
+        : null) ||
+      `Holder ${formattedRecipient.slice(0, 6)}`;
+
+    // Resolve recipient's DID dynamically
+    let recipientDid = `did:ethr:${formattedRecipient}`;
+    try {
+      const [didURI, , exists] = await contract.getIdentity(formattedRecipient);
+      if (exists && didURI) recipientDid = didURI;
+    } catch {}
 
     // Construct standard ERC721 metadata structure
     const metadata = {
-      name: `${assetType} - ${details.fullName || "Credential Holder"}`,
-      description: `Decentralized digital asset credential (${assetType}) verified on-chain.`,
-      image: details.image || `https://api.dicebear.com/7.x/identicon/svg?seed=${encodeURIComponent(formattedRecipient)}`,
+      name: details.name || `${assetType} - ${resolvedHolder}`,
+      description:
+        details.description ||
+        `Decentralized digital asset credential (${assetType}) verified on-chain.`,
+      image:
+        details.image ||
+        `https://api.dicebear.com/7.x/identicon/svg?seed=${encodeURIComponent(formattedRecipient)}`,
       assetType: assetType,
       issuedAt: new Date().toISOString(),
       issuer: relayerWallet.address,
       recipient: formattedRecipient,
-      attributes: Object.entries(details).map(([trait, value]) => ({
-        trait_type: trait,
-        value: String(value),
-      })),
+      owner: formattedRecipient,
+      ownerName: resolvedHolder,
+      ownerDid: recipientDid,
+      attributes: [
+        { trait_type: "Holder", value: resolvedHolder },
+        { trait_type: "Owner", value: resolvedHolder },
+        { trait_type: "Owner Wallet", value: formattedRecipient },
+        { trait_type: "Owner DID", value: recipientDid },
+        ...Object.entries(details)
+          .filter(([trait]) => !["fullName", "name", "image", "description"].includes(trait))
+          .map(([trait, value]) => ({
+            trait_type: trait,
+            value: String(value),
+          })),
+      ],
     };
 
     // Encode metadata as base64 Data URI (portable & fully self-contained)
@@ -356,13 +1258,6 @@ const ROLE_HASHES = {
 };
 
 /**
- * Route: /admin -> Serves admin.html
- */
-app.get("/admin", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "admin.html"));
-});
-
-/**
  * Helper to get all on-chain events and construct activity log
  */
 async function fetchOnChainActivities() {
@@ -410,13 +1305,14 @@ async function fetchOnChainActivities() {
     const user = ev.args[0];
     const didURI = ev.args[1];
     const timestamp = await getBlockTime(ev.blockNumber);
+    const matched = resolveUserByAddress(user);
 
     activities.push({
       id: `id_created_${ev.transactionHash}_${ev.index}`,
       action: "Identity Created",
       actionType: "identity_created",
       userAddress: user,
-      userName: userNamesByAddress[user] || null,
+      userName: matched ? matched.username : (userNamesByAddress[user] || null),
       didURI: didURI,
       details: `Created on-chain DID: ${didURI}`,
       blockNumber: ev.blockNumber,
@@ -431,13 +1327,14 @@ async function fetchOnChainActivities() {
     const user = ev.args[0];
     const didURI = ev.args[1];
     const timestamp = await getBlockTime(ev.blockNumber);
+    const matched = resolveUserByAddress(user);
 
     activities.push({
       id: `id_updated_${ev.transactionHash}_${ev.index}`,
       action: "Identity Updated",
       actionType: "identity_updated",
       userAddress: user,
-      userName: userNamesByAddress[user] || null,
+      userName: matched ? matched.username : (userNamesByAddress[user] || null),
       didURI: didURI,
       details: `Updated on-chain DID to: ${didURI}`,
       blockNumber: ev.blockNumber,
@@ -465,14 +1362,17 @@ async function fetchOnChainActivities() {
         if (parsed.name) assetName = parsed.name;
         if (parsed.assetType) assetType = parsed.assetType;
         if (parsed.attributes) {
-          const fn = parsed.attributes.find((a) => a.trait_type === "fullName" || a.trait_type === "name");
+          const fn = parsed.attributes.find((a) => a.trait_type === "Holder" || a.trait_type === "Owner" || a.trait_type === "fullName" || a.trait_type === "name");
           if (fn) holderName = fn.value;
         }
       }
     } catch (e) {}
 
-    if (holderName) {
-      userNamesByAddress[to] = holderName;
+    const matched = resolveUserByAddress(to);
+    const resolvedDisplayName = matched ? matched.username : (holderName || userNamesByAddress[to] || null);
+
+    if (resolvedDisplayName) {
+      userNamesByAddress[to] = resolvedDisplayName;
     }
 
     activities.push({
@@ -483,7 +1383,7 @@ async function fetchOnChainActivities() {
       assetType: assetType,
       tokenId: tokenId,
       userAddress: to,
-      userName: holderName || userNamesByAddress[to] || null,
+      userName: resolvedDisplayName,
       didURI: `did:ethr:${to}`,
       details: `Minted ${assetName} (Token #${tokenId})`,
       blockNumber: ev.blockNumber,
@@ -500,6 +1400,7 @@ async function fetchOnChainActivities() {
     const sender = ev.args[2];
     const roleName = getRoleName(roleHash);
     const timestamp = await getBlockTime(ev.blockNumber);
+    const matched = resolveUserByAddress(account);
 
     activities.push({
       id: `role_granted_${ev.transactionHash}_${ev.index}`,
@@ -507,7 +1408,7 @@ async function fetchOnChainActivities() {
       actionType: "role_assigned",
       roleName: roleName,
       userAddress: account,
-      userName: userNamesByAddress[account] || null,
+      userName: matched ? matched.username : (userNamesByAddress[account] || null),
       didURI: `did:ethr:${account}`,
       sender: sender,
       details: `Role ${roleName} granted by ${sender.slice(0, 6)}...`,
@@ -525,6 +1426,7 @@ async function fetchOnChainActivities() {
     const sender = ev.args[2];
     const roleName = getRoleName(roleHash);
     const timestamp = await getBlockTime(ev.blockNumber);
+    const matched = resolveUserByAddress(account);
 
     activities.push({
       id: `role_revoked_${ev.transactionHash}_${ev.index}`,
@@ -532,7 +1434,7 @@ async function fetchOnChainActivities() {
       actionType: "access_denied",
       roleName: roleName,
       userAddress: account,
-      userName: userNamesByAddress[account] || null,
+      userName: matched ? matched.username : (userNamesByAddress[account] || null),
       didURI: `did:ethr:${account}`,
       sender: sender,
       details: `Role ${roleName} revoked by ${sender.slice(0, 6)}...`,
@@ -737,9 +1639,38 @@ app.get("/api/admin/assets", ensureContractReady, async (req, res) => {
           parsedMetadata = JSON.parse(decodeURIComponent(uri.replace("data:application/json,", "")));
         }
 
+        const formattedOwner = ethers.getAddress(owner);
+        let resolvedDid = `did:ethr:${formattedOwner}`;
+        try {
+          const [didURI, , identityExists] = await contract.getIdentity(formattedOwner);
+          if (identityExists && didURI) resolvedDid = didURI;
+        } catch {}
+
+        const matchedUser = resolveUserByAddress(formattedOwner);
+        let ownerName = "";
+        let isLegacyDemo = false;
+
+        if (matchedUser) {
+          ownerName = matchedUser.username;
+        } else if (formattedOwner.toLowerCase() === relayerWallet.address.toLowerCase()) {
+          ownerName = "System Admin";
+        } else if (formattedOwner.toLowerCase() === "0x70997970c51812dc3a010c7d01b50e0d17dc79c8") {
+          ownerName = "Legacy Demo (0x7099)";
+          isLegacyDemo = true;
+        } else {
+          const metaHolder =
+            parsedMetadata?.attributes?.find(
+              (a) => a.trait_type === "Holder" || a.trait_type === "Owner" || a.trait_type === "fullName"
+            )?.value;
+          ownerName = metaHolder || `User ${formattedOwner.slice(0, 6)}...${formattedOwner.slice(-4)}`;
+        }
+
         assets.push({
           tokenId: tokenId.toString(),
-          owner: owner,
+          owner: formattedOwner,
+          ownerName: ownerName,
+          ownerDid: resolvedDid,
+          isLegacyDemo: isLegacyDemo,
           tokenURI: uri,
           metadata: parsedMetadata,
         });
@@ -862,17 +1793,9 @@ app.post("/api/admin/roles/revoke", ensureContractReady, async (req, res) => {
 // ROLES & PERMISSIONS PAGE API ENDPOINTS
 // ==========================================
 
-/**
- * Route: /roles -> Serves roles.html
- */
-app.get("/roles", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "roles.html"));
-});
-
 // Mapping of known address to friendly names
 const KNOWN_USER_NAMES = {
   "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266": "System Admin (Relayer)",
-  "0x70997970C51812dc3A010C7d01b50e0d17dc79C8": "Rahul / Bob",
   "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC": "Alice Vance",
   "0x90F79bf6EB2c4f870365E785982E1f101E93b906": "Priya",
   "0xc8Cd9300c0174353255140EEB9E3864a7541D99c": "Mizan",
@@ -896,7 +1819,7 @@ const SIMULATED_SIGNER_KEYS = {
  */
 app.get("/api/roles/users", ensureContractReady, async (req, res) => {
   try {
-    // 1. Gather all unique user addresses from events & default set
+    // 1. Gather all unique user addresses from events & registered users
     const [idCreatedEvents, idUpdatedEvents, mintEvents, roleGrantedEvents] = await Promise.all([
       contract.queryFilter(contract.filters.IdentityCreated(), 0, "latest"),
       contract.queryFilter(contract.filters.IdentityUpdated(), 0, "latest"),
@@ -906,8 +1829,8 @@ app.get("/api/roles/users", ensureContractReady, async (req, res) => {
 
     const userAddresses = new Set([
       relayerWallet.address,
+      ...USERS.map((u) => ethers.getAddress(u.walletAddress)),
       "0xc8Cd9300c0174353255140EEB9E3864a7541D99c",
-      "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
       "0x90F79bf6EB2c4f870365E785982E1f101E93b906",
       "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC",
     ]);
@@ -941,11 +1864,16 @@ app.get("/api/roles/users", ensureContractReady, async (req, res) => {
           role = "AUDITOR";
         }
 
-        // Determine user display name
-        let name = KNOWN_USER_NAMES[formattedAddr] || `User ${formattedAddr.slice(0, 6)}`;
-        if (formattedAddr === "0xc8Cd9300c0174353255140EEB9E3864a7541D99c") name = "Mizan";
-        if (formattedAddr === "0x70997970C51812dc3A010C7d01b50e0d17dc79C8") name = "Rahul";
-        if (formattedAddr === "0x90F79bf6EB2c4f870365E785982E1f101E93b906") name = "Priya";
+        // Determine user display name dynamically
+        const matchedUser = resolveUserByAddress(formattedAddr);
+        let name = "";
+        if (matchedUser) {
+          name = matchedUser.username;
+        } else if (formattedAddr.toLowerCase() === "0x70997970c51812dc3a010c7d01b50e0d17dc79c8") {
+          name = "Legacy Demo (0x7099)";
+        } else {
+          name = KNOWN_USER_NAMES[formattedAddr] || `User ${formattedAddr.slice(0, 6)}`;
+        }
 
         users.push({
           user: name,
@@ -1242,13 +2170,6 @@ app.post("/api/roles/simulate", ensureContractReady, async (req, res) => {
 // ==========================================
 
 /**
- * Route: /assets -> Serves assets.html
- */
-app.get("/assets", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "assets.html"));
-});
-
-/**
  * GET /api/assets/all
  * Fetches all on-chain NFT assets with full metadata, owner resolution, and transfer history.
  */
@@ -1302,10 +2223,39 @@ app.get("/api/assets/all", ensureContractReady, async (req, res) => {
           parsedMetadata = JSON.parse(decodeURIComponent(uri.replace("data:application/json,", "")));
         }
 
-        const ownerName =
-          KNOWN_USER_NAMES[currentOwner] ||
-          (parsedMetadata.attributes && parsedMetadata.attributes.find((a) => a.trait_type === "fullName")?.value) ||
-          `Owner ${currentOwner.slice(0, 6)}`;
+        const formattedOwner = ethers.getAddress(currentOwner);
+
+        // Fetch on-chain DID for owner or fallback to did:ethr:
+        let resolvedDid = `did:ethr:${formattedOwner}`;
+        try {
+          const [didURI, , identityExists] = await contract.getIdentity(formattedOwner);
+          if (identityExists && didURI) resolvedDid = didURI;
+        } catch {}
+
+        // Resolve owner display name dynamically from registered users
+        const matchedUser = resolveUserByAddress(formattedOwner);
+        let ownerName = "";
+        let isLegacyDemo = false;
+
+        if (matchedUser) {
+          ownerName = matchedUser.username;
+        } else if (formattedOwner.toLowerCase() === relayerWallet.address.toLowerCase()) {
+          ownerName = "System Admin";
+        } else if (formattedOwner.toLowerCase() === "0x70997970c51812dc3a010c7d01b50e0d17dc79c8") {
+          ownerName = "Legacy Demo (0x7099)";
+          isLegacyDemo = true;
+        } else {
+          const metaHolder =
+            parsedMetadata.attributes &&
+            parsedMetadata.attributes.find(
+              (a) =>
+                a.trait_type === "Holder" ||
+                a.trait_type === "Owner" ||
+                a.trait_type === "fullName"
+            )?.value;
+          ownerName =
+            metaHolder || `Owner ${formattedOwner.slice(0, 6)}...${formattedOwner.slice(-4)}`;
+        }
 
         const hasBeenTransferred = (transfersByTokenId[idStr] || 0) > 0;
         const status = hasBeenTransferred ? "Transferred" : "Active";
@@ -1314,9 +2264,10 @@ app.get("/api/assets/all", ensureContractReady, async (req, res) => {
           tokenId: idStr,
           assetType: parsedMetadata.assetType || "Digital Asset",
           assetName: parsedMetadata.name || `Asset #${tokenId}`,
-          owner: currentOwner,
+          owner: formattedOwner,
           ownerName: ownerName,
-          ownerDid: `did:ethr:${currentOwner}`,
+          ownerDid: resolvedDid,
+          isLegacyDemo: isLegacyDemo,
           status: status,
           isTransferred: hasBeenTransferred,
           transferCount: transfersByTokenId[idStr] || 0,
@@ -1390,6 +2341,7 @@ app.get("/api/assets/stats", ensureContractReady, async (req, res) => {
 /**
  * POST /api/assets/transfer
  * Executes on-chain transfer of a digital asset NFT from current owner to target recipient.
+ * Authorized for: Token Owner, MANAGER_ROLE, and DEFAULT_ADMIN_ROLE.
  * Body: { tokenId: number|string, toAddress: string, callerAddress?: string }
  */
 app.post("/api/assets/transfer", ensureContractReady, async (req, res) => {
@@ -1397,37 +2349,101 @@ app.post("/api/assets/transfer", ensureContractReady, async (req, res) => {
     const { tokenId, toAddress, callerAddress } = req.body;
 
     if (!tokenId) {
-      return res.status(400).json({ error: "A valid tokenId is required." });
+      return res.status(400).json({ success: false, error: "A valid tokenId is required." });
     }
 
-    if (!toAddress || !ethers.isAddress(toAddress)) {
-      return res.status(400).json({ error: "A valid recipient wallet address ('toAddress') is required." });
+    if (!toAddress || !toAddress.trim()) {
+      return res.status(400).json({ success: false, error: "A valid recipient wallet address or registered user is required ('toAddress')." });
     }
 
     const tid = BigInt(tokenId);
-    const targetRecipient = ethers.getAddress(toAddress);
+    const cleanTo = toAddress.trim();
+
+    // Dynamically resolve recipient: support wallet address or registered username
+    let targetRecipient = null;
+    let recipientUser = null;
+
+    if (ethers.isAddress(cleanTo)) {
+      targetRecipient = ethers.getAddress(cleanTo);
+      recipientUser = resolveUserByAddress(targetRecipient);
+    } else {
+      // Look up dynamically by registered username or email
+      recipientUser = USERS.find(
+        (u) =>
+          u.username.toLowerCase() === cleanTo.toLowerCase() ||
+          u.email.toLowerCase() === cleanTo.toLowerCase() ||
+          (u.name && u.name.toLowerCase() === cleanTo.toLowerCase())
+      );
+      if (recipientUser && recipientUser.walletAddress && ethers.isAddress(recipientUser.walletAddress)) {
+        targetRecipient = ethers.getAddress(recipientUser.walletAddress);
+      }
+    }
+
+    if (!targetRecipient) {
+      return res.status(400).json({
+        success: false,
+        error: `Could not resolve recipient '${cleanTo}'. Please provide a valid Ethereum wallet address or registered username.`,
+      });
+    }
 
     // Fetch current on-chain owner
     const currentOwner = await contract.ownerOf(tid);
 
     if (currentOwner.toLowerCase() === targetRecipient.toLowerCase()) {
-      return res.status(400).json({ error: "Recipient is already the current owner of this asset." });
+      return res.status(400).json({ success: false, error: "Recipient is already the current owner of this asset." });
     }
 
-    // Determine signer for the transfer (owner signer if available in simulated keys, or relayer with approval/admin)
-    const ownerKey = SIMULATED_SIGNER_KEYS[currentOwner.toLowerCase()];
-    const signer = ownerKey ? new ethers.Wallet(ownerKey, provider) : relayerWallet;
+    // Identify caller: prioritize callerAddress if provided, fallback to active session
+    let caller = null;
+    if (callerAddress && ethers.isAddress(callerAddress.trim())) {
+      caller = ethers.getAddress(callerAddress.trim());
+    } else if (req.session && req.session.user && req.session.user.walletAddress && ethers.isAddress(req.session.user.walletAddress)) {
+      caller = ethers.getAddress(req.session.user.walletAddress);
+    }
 
-    console.log(`[API] Transferring Token #${tid} from ${currentOwner} to ${targetRecipient}...`);
+    if (!caller) {
+      return res.status(401).json({
+        success: false,
+        error: "Unauthorized: Active user session or valid callerAddress is required to initiate transfer.",
+      });
+    }
 
-    const ownerContract = contract.connect(signer);
+    // Check RBAC permissions for the caller
+    const isOwner = caller.toLowerCase() === currentOwner.toLowerCase();
+    const isManager = await contract.hasRole(ROLE_HASHES.MANAGER_ROLE, caller);
+    const isAdmin = await contract.hasRole(ROLE_HASHES.DEFAULT_ADMIN_ROLE, caller);
+    const approvedAddress = await contract.getApproved(tid);
+    const isApproved =
+      approvedAddress.toLowerCase() === caller.toLowerCase() ||
+      (await contract.isApprovedForAll(currentOwner, caller));
 
-    // Execute transfer on-chain
-    const rawNonceHex = await provider.send("eth_getTransactionCount", [signer.address, "latest"]);
-    const nonce = parseInt(rawNonceHex, 16);
+    if (!isOwner && !isManager && !isAdmin && !isApproved) {
+      return res.status(403).json({
+        success: false,
+        error: "Access Denied: Smart contract rejected unauthorized transfer. Only the token owner or an authorized MANAGER/Admin is permitted to transfer this NFT (ERC721.transferFrom).",
+      });
+    }
 
-    const tx = await ownerContract.transferFrom(currentOwner, targetRecipient, tid, { nonce });
-    const receipt = await tx.wait();
+    console.log(`[API] Transferring Token #${tid} from ${currentOwner} to ${targetRecipient} (Authorized caller: ${caller})...`);
+
+    // Determine on-chain execution signer:
+    // If caller has a known simulation key, use it; otherwise use relayerWallet (which holds MANAGER/ADMIN roles)
+    let receipt;
+    const callerKey = SIMULATED_SIGNER_KEYS[caller.toLowerCase()];
+
+    if (callerKey) {
+      const callerSigner = new ethers.Wallet(callerKey, provider);
+      const callerContract = contract.connect(callerSigner);
+      const rawNonceHex = await provider.send("eth_getTransactionCount", [callerSigner.address, "latest"]);
+      const nonce = parseInt(rawNonceHex, 16);
+      const tx = await callerContract.transferFrom(currentOwner, targetRecipient, tid, { nonce });
+      receipt = await tx.wait();
+    } else {
+      receipt = await executeRelayerTx(async (nonce) => {
+        const tx = await contract.transferFrom(currentOwner, targetRecipient, tid, { nonce });
+        return await tx.wait();
+      });
+    }
 
     console.log(`[API] Transfer successful! Tx: ${receipt.hash}, Block: ${receipt.blockNumber}`);
 
@@ -1438,6 +2454,7 @@ app.post("/api/assets/transfer", ensureContractReady, async (req, res) => {
         tokenId: tokenId.toString(),
         previousOwner: currentOwner,
         newOwner: targetRecipient,
+        recipientUser: recipientUser ? recipientUser.username : null,
         transactionHash: receipt.hash,
         blockNumber: receipt.blockNumber,
         gasUsed: receipt.gasUsed.toString(),
@@ -1506,13 +2523,6 @@ app.get("/api/assets/verify/:tokenId", ensureContractReady, async (req, res) => 
 // ==========================================
 // BLOCKCHAIN AUDIT TRAIL API ENDPOINTS
 // ==========================================
-
-/**
- * Route: /audit -> Serves audit.html
- */
-app.get("/audit", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "audit.html"));
-});
 
 // Cache for transaction receipts
 const txReceiptCache = {};
@@ -1784,8 +2794,10 @@ app.get("/api/audit/logs", ensureContractReady, async (req, res) => {
       if (from !== ethers.ZeroAddress) {
         const time = await getBlockTime(ev.blockNumber);
         const txInfo = await getTxDetails(ev.transactionHash);
-        const fromName = KNOWN_USER_NAMES[from] || `${from.slice(0, 6)}...`;
-        const toName = KNOWN_USER_NAMES[to] || `${to.slice(0, 6)}...`;
+        const matchedFrom = resolveUserByAddress(from);
+        const matchedTo = resolveUserByAddress(to);
+        const fromName = matchedFrom ? matchedFrom.username : (KNOWN_USER_NAMES[from] || `${from.slice(0, 6)}...`);
+        const toName = matchedTo ? matchedTo.username : (KNOWN_USER_NAMES[to] || `${to.slice(0, 6)}...`);
 
         auditLogs.push({
           id: `audit_transfer_${ev.transactionHash}_${ev.index}`,
@@ -1870,13 +2882,6 @@ app.get("/api/audit/transaction/:hash", ensureContractReady, async (req, res) =>
 // ==========================================
 // SIH ACCESS CONTROL DEMO API ENDPOINTS
 // ==========================================
-
-/**
- * Route: /demo -> Serves demo.html
- */
-app.get("/demo", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "demo.html"));
-});
 
 // Preset Demo Assets with Security Clearance Policies
 const DEMO_ASSETS_POLICIES = {
@@ -2069,7 +3074,7 @@ app.post("/api/demo/access-request", ensureContractReady, async (req, res) => {
 if (process.env.NODE_ENV !== "test") {
   app.listen(PORT, () => {
     console.log(`====================================================`);
-    console.log(` Decentralized Identity & Asset Management Server`);
+    console.log(` Credexa — Decentralized Identity & Asset Management Server`);
     console.log(` API running on: http://localhost:${PORT}`);
     console.log(` Endpoints:`);
     console.log(`   - POST /api/identities`);
