@@ -67,7 +67,10 @@ document.addEventListener("DOMContentLoaded", () => {
   // ==========================================
   async function loadAdminStats() {
     try {
-      const res = await fetch("/api/admin/stats");
+      const [res, usersRes] = await Promise.all([
+        fetch("/api/admin/stats"),
+        fetch("/api/admin/users").catch(() => null),
+      ]);
       const data = await res.json();
 
       if (data.success) {
@@ -82,8 +85,19 @@ document.addEventListener("DOMContentLoaded", () => {
         relayerBalanceVal.textContent = `${parseFloat(data.relayer.balanceEth).toFixed(4)} ETH`;
         relayerBalanceVal.title = `Relayer: ${data.relayer.address}`;
 
+        // Determine user count dynamically from actual User Management records
+        let totalUsersCount = data.stats.totalUsers;
+        if (usersRes && usersRes.ok) {
+          try {
+            const usersData = await usersRes.json();
+            if (usersData && usersData.success && Array.isArray(usersData.users)) {
+              totalUsersCount = usersData.users.length;
+            }
+          } catch {}
+        }
+
         // Summary Metric Cards
-        animateCounter(statTotalUsers, data.stats.totalUsers);
+        animateCounter(statTotalUsers, totalUsersCount);
         animateCounter(statRegisteredDids, data.stats.registeredDids);
         animateCounter(statDigitalAssets, data.stats.totalDigitalAssets);
         animateCounter(statTotalNfts, data.stats.totalNfts);

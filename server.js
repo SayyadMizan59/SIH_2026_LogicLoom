@@ -74,6 +74,46 @@ const USERS = [
     walletAddress: "0x690e1F6FdBF4C8010821332c860EC0E77b1441D3",
     createdAt: "2026-09-26T11:34:51.837Z",
   },
+  {
+    id: "usr_1790607533734",
+    username: "user4",
+    email: "user4@credexa.io",
+    passwordHash: bcrypt.hashSync("user123", 10),
+    role: "User",
+    name: "user4",
+    walletAddress: "0xca3C1a1660321dB12b1324bC4451A7f0867b69E8",
+    createdAt: "2026-09-28T14:58:53.872Z",
+  },
+  {
+    id: "usr_mizan",
+    username: "Mizan",
+    email: "mizan@credexa.io",
+    passwordHash: bcrypt.hashSync("user123", 10),
+    role: "User",
+    name: "Mizan",
+    walletAddress: "0xc8Cd9300c0174353255140EEB9E3864a7541D99c",
+    createdAt: "2026-02-10T00:00:00Z",
+  },
+  {
+    id: "usr_priya",
+    username: "Priya",
+    email: "priya@credexa.io",
+    passwordHash: bcrypt.hashSync("user123", 10),
+    role: "Auditor",
+    name: "Priya",
+    walletAddress: "0x90F79bf6EB2c4f870365E785982E1f101E93b906",
+    createdAt: "2026-02-15T00:00:00Z",
+  },
+  {
+    id: "usr_alice",
+    username: "Alice Vance",
+    email: "alice@credexa.io",
+    passwordHash: bcrypt.hashSync("user123", 10),
+    role: "User",
+    name: "Alice Vance",
+    walletAddress: "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC",
+    createdAt: "2026-03-01T00:00:00Z",
+  },
 ];
 
 /**
@@ -1522,6 +1562,7 @@ app.get("/api/admin/stats", ensureContractReady, async (req, res) => {
     // Active Role Holders
     const accountsToCheck = new Set([
       relayerWallet.address,
+      ...USERS.map((u) => ethers.getAddress(u.walletAddress)),
       ...Array.from(allUsers),
     ]);
 
@@ -1564,7 +1605,7 @@ app.get("/api/admin/stats", ensureContractReady, async (req, res) => {
     res.json({
       success: true,
       stats: {
-        totalUsers: allUsers.size || 1,
+        totalUsers: USERS.length,
         registeredDids: registeredDidAddresses.size,
         totalDigitalAssets: totalAssetsCount,
         totalNfts: totalAssetsCount,
