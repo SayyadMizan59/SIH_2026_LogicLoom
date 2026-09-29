@@ -26,6 +26,7 @@ app.use((req, res, next) => {
   if (
     pathname !== "/" &&
     !pathname.startsWith("/api") &&
+    !pathname.includes(".") &&
     !knownNonApiPrefixes.some((p) => pathname === p || pathname.startsWith(p + "/"))
   ) {
     req.url = "/api" + pathname + (search ? "?" + search : "");
@@ -272,10 +273,11 @@ app.use(express.static(path.join(__dirname, "public"), { index: false }));
 
 // Configuration
 const RPC_URL = process.env.RPC_URL || "http://127.0.0.1:8545";
-// Default Hardhat Account #0 private key
-const RELAYER_PRIVATE_KEY =
-  process.env.PRIVATE_KEY ||
-  "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80";
+// Relayer private key from environment variable (with fallback to Hardhat Account #0 for local dev)
+const rawPrivateKey = process.env.PRIVATE_KEY ? process.env.PRIVATE_KEY.trim() : "";
+const RELAYER_PRIVATE_KEY = rawPrivateKey
+  ? (rawPrivateKey.startsWith("0x") ? rawPrivateKey : `0x${rawPrivateKey}`)
+  : "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80";
 
 let provider;
 let relayerWallet;
@@ -312,15 +314,6 @@ function executeRelayerTx(action) {
  */
 function initBlockchain() {
   try {
-    if (
-      (process.env.NODE_ENV === "production" || process.env.NETLIFY) &&
-      (!process.env.RPC_URL || process.env.RPC_URL.includes("127.0.0.1") || process.env.RPC_URL.includes("localhost"))
-    ) {
-      console.warn(
-        "[Blockchain] WARNING: Production environment detected, but RPC_URL is pointing to localhost or unset! Please configure RPC_URL in Netlify Environment Variables."
-      );
-    }
-
     provider = new ethers.JsonRpcProvider(RPC_URL);
     relayerWallet = new ethers.Wallet(RELAYER_PRIVATE_KEY, provider);
 
@@ -329,11 +322,13 @@ function initBlockchain() {
 
     if (fs.existsSync(deploymentPath)) {
       const deploymentData = JSON.parse(fs.readFileSync(deploymentPath, "utf8"));
-      contractAddress = process.env.CONTRACT_ADDRESS || deploymentData.contractAddress;
+      contractAddress =
+        (process.env.CONTRACT_ADDRESS && process.env.CONTRACT_ADDRESS.trim()) ||
+        deploymentData.contractAddress;
       contractAbi = deploymentData.abi;
     } else if (fs.existsSync(staticAbiPath)) {
       contractAbi = JSON.parse(fs.readFileSync(staticAbiPath, "utf8"));
-      contractAddress = process.env.CONTRACT_ADDRESS;
+      contractAddress = process.env.CONTRACT_ADDRESS ? process.env.CONTRACT_ADDRESS.trim() : undefined;
     } else {
       // Fallback: check compiled artifacts
       const artifactPath = path.join(
@@ -343,7 +338,7 @@ function initBlockchain() {
       if (fs.existsSync(artifactPath)) {
         const artifact = JSON.parse(fs.readFileSync(artifactPath, "utf8"));
         contractAbi = artifact.abi;
-        contractAddress = process.env.CONTRACT_ADDRESS;
+        contractAddress = process.env.CONTRACT_ADDRESS ? process.env.CONTRACT_ADDRESS.trim() : undefined;
       }
     }
 
@@ -353,7 +348,7 @@ function initBlockchain() {
       console.log(`[Blockchain] Relayer wallet address: ${relayerWallet.address}`);
     } else {
       console.warn(
-        "[Blockchain] Contract address not found. In local dev, deploy the contract using `npm run deploy`. In Netlify production, set CONTRACT_ADDRESS in environment variables."
+        "[Blockchain] Contract address not found. Please deploy the contract using `npm run deploy`."
       );
     }
   } catch (error) {
