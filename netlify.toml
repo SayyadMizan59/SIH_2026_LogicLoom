@@ -7,6 +7,11 @@
 
 # Direct all API requests to the Express serverless function
 [[redirects]]
+  from = "/api"
+  to = "/.netlify/functions/api"
+  status = 200
+
+[[redirects]]
   from = "/api/*"
   to = "/.netlify/functions/api/:splat"
   status = 200
@@ -16,6 +21,19 @@
   from = "/logout"
   to = "/.netlify/functions/api/logout"
   status = 200
+
+# Redirect root and index.html to /login (force = true overrides static public/index.html)
+[[redirects]]
+  from = "/"
+  to = "/login"
+  status = 302
+  force = true
+
+[[redirects]]
+  from = "/index.html"
+  to = "/login"
+  status = 302
+  force = true
 
 # Clean UI page routing to public/ static HTML pages
 [[redirects]]
