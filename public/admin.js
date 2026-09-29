@@ -85,6 +85,14 @@ document.addEventListener("DOMContentLoaded", () => {
         relayerBalanceVal.textContent = `${parseFloat(data.relayer.balanceEth).toFixed(4)} ETH`;
         relayerBalanceVal.title = `Relayer: ${data.relayer.address}`;
 
+        // Settings Modal Details
+        const settingsChain = document.getElementById("settingsChainId");
+        if (settingsChain) settingsChain.textContent = `${data.network.chainId} (${data.network.name || "EVM"})`;
+        const settingsContractElem = document.getElementById("settingsContract");
+        if (settingsContractElem) settingsContractElem.textContent = fullContractAddress;
+        const settingsRelayerElem = document.getElementById("settingsRelayer");
+        if (settingsRelayerElem) settingsRelayerElem.textContent = data.relayer.address;
+
         // Determine user count dynamically from actual User Management records
         let totalUsersCount = data.stats.totalUsers;
         if (usersRes && usersRes.ok) {

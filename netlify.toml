@@ -1,0 +1,54 @@
+[build]
+  publish = "public"
+  functions = "netlify/functions"
+
+[build.environment]
+  NODE_VERSION = "20"
+
+# Direct all API requests to the Express serverless function
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/api/:splat"
+  status = 200
+
+# Direct session logout through the serverless function
+[[redirects]]
+  from = "/logout"
+  to = "/.netlify/functions/api/logout"
+  status = 200
+
+# Clean UI page routing to public/ static HTML pages
+[[redirects]]
+  from = "/login"
+  to = "/login.html"
+  status = 200
+
+[[redirects]]
+  from = "/admin"
+  to = "/admin.html"
+  status = 200
+
+[[redirects]]
+  from = "/user"
+  to = "/user.html"
+  status = 200
+
+[[redirects]]
+  from = "/roles"
+  to = "/roles.html"
+  status = 200
+
+[[redirects]]
+  from = "/assets"
+  to = "/assets.html"
+  status = 200
+
+[[redirects]]
+  from = "/audit"
+  to = "/audit.html"
+  status = 200
+
+[[redirects]]
+  from = "/demo"
+  to = "/demo.html"
+  status = 200

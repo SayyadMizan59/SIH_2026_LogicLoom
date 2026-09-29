@@ -11,6 +11,29 @@ require("dotenv").config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Trust reverse proxy (Netlify, AWS Lambda, CDN)
+app.set("trust proxy", 1);
+
+// URL path normalization for Netlify Functions & local Express
+app.use((req, res, next) => {
+  if (req.url.startsWith("/.netlify/functions/api")) {
+    req.url = req.url.slice("/.netlify/functions/api".length) || "/";
+  }
+
+  const [pathname, search] = req.url.split("?");
+  const knownNonApiPrefixes = ["/login", "/admin", "/user", "/roles", "/assets", "/audit", "/demo", "/logout"];
+
+  if (
+    pathname !== "/" &&
+    !pathname.startsWith("/api") &&
+    !knownNonApiPrefixes.some((p) => pathname === p || pathname.startsWith(p + "/"))
+  ) {
+    req.url = "/api" + pathname + (search ? "?" + search : "");
+  }
+
+  next();
+});
+
 // Base Middlewares
 app.use(cors());
 app.use(express.json());
@@ -25,7 +48,7 @@ app.use(
     saveUninitialized: false,
     cookie: {
       httpOnly: true,
-      secure: false, // Set to true if running over HTTPS
+      secure: process.env.NODE_ENV === "production" ? "auto" : false, // Auto-detect HTTPS behind reverse proxy
       sameSite: "lax",
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
     },
@@ -289,14 +312,28 @@ function executeRelayerTx(action) {
  */
 function initBlockchain() {
   try {
+    if (
+      (process.env.NODE_ENV === "production" || process.env.NETLIFY) &&
+      (!process.env.RPC_URL || process.env.RPC_URL.includes("127.0.0.1") || process.env.RPC_URL.includes("localhost"))
+    ) {
+      console.warn(
+        "[Blockchain] WARNING: Production environment detected, but RPC_URL is pointing to localhost or unset! Please configure RPC_URL in Netlify Environment Variables."
+      );
+    }
+
     provider = new ethers.JsonRpcProvider(RPC_URL);
     relayerWallet = new ethers.Wallet(RELAYER_PRIVATE_KEY, provider);
 
     const deploymentPath = path.join(__dirname, "deployment.json");
+    const staticAbiPath = path.join(__dirname, "contracts", "IdentityAssetManager.abi.json");
+
     if (fs.existsSync(deploymentPath)) {
       const deploymentData = JSON.parse(fs.readFileSync(deploymentPath, "utf8"));
       contractAddress = process.env.CONTRACT_ADDRESS || deploymentData.contractAddress;
       contractAbi = deploymentData.abi;
+    } else if (fs.existsSync(staticAbiPath)) {
+      contractAbi = JSON.parse(fs.readFileSync(staticAbiPath, "utf8"));
+      contractAddress = process.env.CONTRACT_ADDRESS;
     } else {
       // Fallback: check compiled artifacts
       const artifactPath = path.join(
@@ -316,7 +353,7 @@ function initBlockchain() {
       console.log(`[Blockchain] Relayer wallet address: ${relayerWallet.address}`);
     } else {
       console.warn(
-        "[Blockchain] Contract address not found. Please deploy the contract using `npm run deploy`."
+        "[Blockchain] Contract address not found. In local dev, deploy the contract using `npm run deploy`. In Netlify production, set CONTRACT_ADDRESS in environment variables."
       );
     }
   } catch (error) {
@@ -350,15 +387,25 @@ const ensureContractReady = (req, res, next) => {
  */
 app.get("/api/health", async (req, res) => {
   try {
+    if (!provider || !relayerWallet) {
+      initBlockchain();
+    }
     const network = await provider.getNetwork();
     const balance = await provider.getBalance(relayerWallet.address);
+
+    const networkName =
+      network.name && network.name !== "unknown"
+        ? network.name
+        : network.chainId === 31337n
+        ? "Hardhat Localhost"
+        : `EVM Chain ${network.chainId}`;
 
     res.json({
       status: "OK",
       timestamp: new Date().toISOString(),
       network: {
         chainId: network.chainId.toString(),
-        name: network.name,
+        name: networkName,
       },
       relayer: {
         address: relayerWallet.address,
@@ -370,6 +417,7 @@ app.get("/api/health", async (req, res) => {
     res.status(500).json({
       status: "Degraded",
       error: error.message,
+      contractAddress: contractAddress || "Not configured",
     });
   }
 });
@@ -1613,7 +1661,12 @@ app.get("/api/admin/stats", ensureContractReady, async (req, res) => {
         totalTransactions: totalTransactions,
       },
       network: {
-        name: "Hardhat",
+        name:
+          network.name && network.name !== "unknown"
+            ? network.name
+            : network.chainId === 31337n
+            ? "Hardhat"
+            : `Chain ${network.chainId}`,
         chainId: network.chainId.toString(),
         currentBlock: currentBlock,
       },
@@ -3111,8 +3164,8 @@ app.post("/api/demo/access-request", ensureContractReady, async (req, res) => {
   }
 });
 
-// Start server
-if (process.env.NODE_ENV !== "test") {
+// Start server only when executed directly (not when required by Netlify Function wrapper or tests)
+if (require.main === module && process.env.NODE_ENV !== "test") {
   app.listen(PORT, () => {
     console.log(`====================================================`);
     console.log(` Credexa — Decentralized Identity & Asset Management Server`);

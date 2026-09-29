@@ -8,6 +8,7 @@
     "test": "hardhat test",
     "node": "hardhat node",
     "deploy": "hardhat run scripts/deploy.js --network localhost",
+    "build": "node -e \"console.log('Credexa: Static frontend and Netlify Functions ready')\"",
     "start": "node server.js",
     "dev": "node server.js"
   },
@@ -28,7 +29,8 @@
     "dotenv": "^16.4.5",
     "ethers": "^6.13.2",
     "express": "^4.19.2",
-    "express-session": "^1.19.0"
+    "express-session": "^1.19.0",
+    "serverless-http": "^4.0.0"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "^5.0.0",
